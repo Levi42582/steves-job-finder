@@ -222,8 +222,9 @@ Rules:
 - Naturally incorporate relevant ATS keywords from the job description
 - Rewrite bullet points to emphasize the most relevant experience
 - Keep the same number of bullet points per role
-- CRITICAL: Keep each bullet point to 1-2 lines max (similar length to the originals) — the resume must fit on ONE page
-- Profile lines should be single sentences, no longer than the originals
+- CRITICAL: The resume must fit on ONE page — keep every bullet under 200 characters
+- Profile lines must be single sentences under 120 characters each
+- Skills must be 1-4 words each (short labels only, e.g. "Cost Accounting", "ERP Systems")
 - Return ONLY valid JSON, no other text
 
 Return this exact JSON structure:
@@ -255,14 +256,28 @@ def build_resume_docx(optimized):
     doc = Document(template_path)
     paras = doc.paragraphs
 
-    def set_text(para, text):
-        """Replace all runs with a single run containing new text, preserving paragraph style."""
+    def set_text(para, new_text):
+        """Set paragraph text preserving run[0] formatting, clearing the rest."""
         if not para.runs:
-            para.add_run(text)
+            para.add_run(new_text)
             return
-        para.runs[0].text = text
+        para.runs[0].text = new_text
         for run in para.runs[1:]:
             run.text = ""
+
+    def swap_skill(para, old_skill, new_skill):
+        """Find old skill text in any run and replace it in-place."""
+        for run in para.runs:
+            if old_skill in run.text:
+                run.text = run.text.replace(old_skill, new_skill)
+                return
+
+    # Original skills — used as search keys to find the right run
+    ORIG_SKILLS = [
+        "Financial Analysis & Reporting",   "Month-End Close & Reconciliation",  "ERP (Sage Intacct)",
+        "Process Improvement & Documentation", "UAT & Implementation Planning",   "Compliance & Regulatory Reporting",
+        "Process Automation (Macros)",      "Cross-Functional Collaboration",     "Budgeting & Forecasting",
+    ]
 
     # Profile (paragraphs 4, 5, 6)
     for i, idx in enumerate([4, 5, 6]):
@@ -270,10 +285,14 @@ def build_resume_docx(optimized):
         if i < len(lines):
             set_text(paras[idx], lines[i])
 
-    # Skills (paragraphs 9, 10, 11) — tab-separated triples
-    skills = (optimized.get("skills", []) + [""] * 9)[:9]
-    for i, idx in enumerate([9, 10, 11]):
-        set_text(paras[idx], "\t".join(skills[i*3:(i+1)*3]))
+    # Skills — swap each skill in-place to preserve run/tab structure
+    new_skills = (optimized.get("skills", []) + [""] * 9)[:9]
+    for orig, new in zip(ORIG_SKILLS[:3], new_skills[:3]):
+        swap_skill(paras[9], orig, new)
+    for orig, new in zip(ORIG_SKILLS[3:6], new_skills[3:6]):
+        swap_skill(paras[10], orig, new)
+    for orig, new in zip(ORIG_SKILLS[6:9], new_skills[6:9]):
+        swap_skill(paras[11], orig, new)
 
     # WCIRB Analyst bullets (paragraphs 18–21)
     for i, idx in enumerate([18, 19, 20, 21]):
@@ -285,11 +304,11 @@ def build_resume_docx(optimized):
         bullets = optimized.get("wcirb_specialist_bullets", [])
         set_text(paras[idx], bullets[i] if i < len(bullets) else "")
 
-    # WCIRB Compliance (paragraph 27 — single paragraph, join bullets)
+    # WCIRB Compliance (paragraph 27 — single paragraph)
     compliance = optimized.get("wcirb_compliance_bullets", [])
     set_text(paras[27], " ".join(compliance))
 
-    # Nephrology (paragraph 32 — preserve bullet prefix)
+    # Nephrology (paragraph 32 — preserve "• \t" prefix in run[0])
     neph = optimized.get("nephrology_bullets", [])
     if neph:
         set_text(paras[32], "• \t" + " ".join(neph))
