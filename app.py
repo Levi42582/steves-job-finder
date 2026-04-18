@@ -99,17 +99,19 @@ def load_resume():
     return RESUME_TEXT
 
 
-def search_jobs(title, location, page=1):
+def search_jobs(title, location, page=1, min_salary=None):
     url = f"https://api.adzuna.com/v1/api/jobs/us/search/{page}"
     params = {
         "app_id": ADZUNA_APP_ID,
         "app_key": ADZUNA_APP_KEY,
         "what": title,
         "where": location,
-        "results_per_page": 15,
+        "results_per_page": 20,
         "sort_by": "relevance",
         "content-type": "application/json",
     }
+    if min_salary:
+        params["salary_min"] = min_salary
     try:
         r = requests.get(url, params=params, timeout=10)
         r.raise_for_status()
@@ -986,9 +988,16 @@ with tab1:
         st.write("")
         search_btn = st.button("Search", type="primary", use_container_width=True)
 
+    sal_col, _ = st.columns([2, 3])
+    with sal_col:
+        sal_filter = st.checkbox("Filter: $120,000+ salary only", value=True,
+                                 help="Only shows jobs with a listed salary at or above $120k. Uncheck to see all results including unlisted salaries.")
+
     if search_btn:
         with st.spinner("Searching..."):
-            st.session_state.results = search_jobs(job_title, location)
+            st.session_state.results = search_jobs(job_title, location, min_salary=120000 if sal_filter else None)
+        if sal_filter:
+            st.caption("ℹ️ Showing only jobs with a listed salary of $120k+. Uncheck the filter to see all results.")
 
     results = st.session_state.get("results", [])
 
@@ -996,17 +1005,34 @@ with tab1:
         st.write(f"**{len(results)} jobs found**")
 
         for i, job in enumerate(results):
-            title    = job.get("title", "N/A")
-            company  = job.get("company", {}).get("display_name", "N/A")
-            loc      = job.get("location", {}).get("display_name", "N/A")
-            desc     = job.get("description", "")
-            url      = job.get("redirect_url", "#")
-            s_min    = job.get("salary_min")
-            s_max    = job.get("salary_max")
-            salary   = f"${s_min:,.0f} – ${s_max:,.0f}" if s_min and s_max else "Salary not listed"
+            title         = job.get("title", "N/A")
+            company       = job.get("company", {}).get("display_name", "N/A")
+            loc           = job.get("location", {}).get("display_name", "N/A")
+            desc          = job.get("description", "")
+            url           = job.get("redirect_url", "#")
+            s_min         = job.get("salary_min")
+            s_max         = job.get("salary_max")
+            contract_time = job.get("contract_time", "")
+            contract_type = job.get("contract_type", "")
+            salary        = f"${s_min:,.0f} – ${s_max:,.0f}" if s_min and s_max else "Salary not listed"
 
-            with st.expander(f"**{title}** — {company} | {loc} | {salary}"):
-                st.write(desc[:600] + ("..." if len(desc) > 600 else ""))
+            desc_lower = desc.lower()
+            is_remote  = any(w in desc_lower for w in ["remote", "work from home", "work-from-home", "telecommute"])
+            remote_tag = "🌐 Remote" if is_remote or "remote" in loc.lower() else ""
+
+            contract_tag = ""
+            if contract_time == "part_time":   contract_tag = "⏱ Part-time"
+            elif contract_time == "full_time":  contract_tag = "🕐 Full-time"
+            if contract_type == "contract":     contract_tag += "  📄 Contract"
+            elif contract_type == "permanent":  contract_tag += "  ✅ Permanent"
+
+            tags = "  |  ".join(t for t in [remote_tag, contract_tag.strip()] if t)
+            header = f"**{title}** — {company} | {loc} | {salary}"
+
+            with st.expander(header):
+                if tags:
+                    st.markdown(f"**{tags}**")
+                st.write(desc)
                 st.markdown(f"[View full posting ↗]({url})")
 
                 pasted = st.text_area(
