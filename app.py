@@ -285,12 +285,27 @@ def build_resume_docx(optimized):
         if i < len(lines):
             set_text(paras[idx], lines[i])
 
-    # Skills — swap each skill in-place to preserve run/tab structure
+    # Skills — swap each skill in-place for tab-based rows (9 and 11)
+    # For row 10 (space-based), copy tab stops from row 9 and rebuild with tabs
+    import copy
+    from docx.oxml.ns import qn
+
     new_skills = (optimized.get("skills", []) + [""] * 9)[:9]
+
     for orig, new in zip(ORIG_SKILLS[:3], new_skills[:3]):
         swap_skill(paras[9], orig, new)
-    for orig, new in zip(ORIG_SKILLS[3:6], new_skills[3:6]):
-        swap_skill(paras[10], orig, new)
+
+    # Fix para 10: copy tab stops from para 9, then set tab-separated text
+    pPr9  = paras[9]._p.get_or_add_pPr()
+    pPr10 = paras[10]._p.get_or_add_pPr()
+    tabs9 = pPr9.find(qn('w:tabs'))
+    if tabs9 is not None:
+        existing = pPr10.find(qn('w:tabs'))
+        if existing is not None:
+            pPr10.remove(existing)
+        pPr10.append(copy.deepcopy(tabs9))
+    set_text(paras[10], "\t".join(new_skills[3:6]))
+
     for orig, new in zip(ORIG_SKILLS[6:9], new_skills[6:9]):
         swap_skill(paras[11], orig, new)
 
