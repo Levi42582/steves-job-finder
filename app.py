@@ -337,6 +337,188 @@ def build_resume_docx(optimized):
     return buf.getvalue()
 
 
+def build_resume_docx_v2(optimized):
+    from docx import Document
+    from docx.shared import Pt, RGBColor, Inches
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+    import io
+
+    FONT = "Calibri"
+    TEAL      = RGBColor(0x31, 0x84, 0x9B)
+    BLACK     = RGBColor(0x1A, 0x1A, 0x1A)
+    DARK_GREY = RGBColor(0x40, 0x40, 0x40)
+
+    def _pPr(para):
+        return para._p.get_or_add_pPr()
+
+    def set_sp(para, before=0, after=0, line=240):
+        pPr = _pPr(para)
+        e = pPr.find(qn("w:spacing"))
+        if e is not None: pPr.remove(e)
+        sp = OxmlElement("w:spacing")
+        sp.set(qn("w:before"),   str(int(before * 20)))
+        sp.set(qn("w:after"),    str(int(after  * 20)))
+        sp.set(qn("w:line"),     str(line))
+        sp.set(qn("w:lineRule"), "auto")
+        pPr.append(sp)
+
+    def border(para, side="bottom", color="31849B", sz=6):
+        pPr = _pPr(para)
+        pBdr = pPr.find(qn("w:pBdr"))
+        if pBdr is None:
+            pBdr = OxmlElement("w:pBdr"); pPr.append(pBdr)
+        el = OxmlElement(f"w:{side}")
+        el.set(qn("w:val"), "single"); el.set(qn("w:sz"), str(sz))
+        el.set(qn("w:space"), "2");    el.set(qn("w:color"), color)
+        pBdr.append(el)
+
+    def rtab(para, inches=7.4):
+        pPr = _pPr(para)
+        tabs = pPr.find(qn("w:tabs"))
+        if tabs is None:
+            tabs = OxmlElement("w:tabs"); pPr.append(tabs)
+        t = OxmlElement("w:tab")
+        t.set(qn("w:val"), "right")
+        t.set(qn("w:pos"), str(int(inches * 1440)))
+        tabs.append(t)
+
+    def skill_tabs(para):
+        pPr = _pPr(para)
+        tabs = pPr.find(qn("w:tabs"))
+        if tabs is None:
+            tabs = OxmlElement("w:tabs"); pPr.append(tabs)
+        for pos in [2.43, 4.86]:
+            t = OxmlElement("w:tab")
+            t.set(qn("w:val"), "left")
+            t.set(qn("w:pos"), str(int(pos * 1440)))
+            tabs.append(t)
+
+    def bullet_ind(para, left=0.22, hang=0.17):
+        pPr = _pPr(para)
+        ind = pPr.find(qn("w:ind"))
+        if ind is None:
+            ind = OxmlElement("w:ind"); pPr.append(ind)
+        ind.set(qn("w:left"),    str(int(left * 1440)))
+        ind.set(qn("w:hanging"), str(int(hang * 1440)))
+
+    def r(para, text, bold=False, italic=False, size=10, color=BLACK):
+        rn = para.add_run(text)
+        rn.bold = bold; rn.italic = italic
+        rn.font.name = FONT; rn.font.size = Pt(size)
+        rn.font.color.rgb = color
+        return rn
+
+    def sec(text):
+        p = doc.add_paragraph()
+        set_sp(p, before=7, after=2)
+        border(p, "bottom", "31849B", 6)
+        r(p, text.upper(), bold=True, size=11, color=TEAL)
+        return p
+
+    def blt(text):
+        p = doc.add_paragraph()
+        set_sp(p, before=0, after=2)
+        bullet_ind(p)
+        r(p, "\u2022  " + text, size=10, color=BLACK)
+        return p
+
+    doc = Document()
+    s = doc.sections[0]
+    s.top_margin = s.bottom_margin = s.left_margin = s.right_margin = Inches(0.5)
+    s.bottom_margin = Inches(0.45)
+    doc.styles["Normal"].font.name = FONT
+    doc.styles["Normal"].font.size = Pt(10)
+    doc.styles["Normal"].paragraph_format.space_before = Pt(0)
+    doc.styles["Normal"].paragraph_format.space_after  = Pt(0)
+
+    # Name
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    set_sp(p, before=0, after=3)
+    border(p, "bottom", "31849B", 14)
+    r(p, "Stanislav Spektor", bold=True, size=22, color=BLACK)
+
+    # Contact
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    set_sp(p, before=4, after=0)
+    r(p, "s.spektor93@gmail.com", size=10, color=DARK_GREY)
+    r(p, "  \u2022  ", size=10, color=TEAL)
+    r(p, "925-639-3898", size=10, color=DARK_GREY)
+    r(p, "  \u2022  ", size=10, color=TEAL)
+    r(p, "linkedin.com/in/stanislav-spektor", size=10, color=DARK_GREY)
+
+    # Profile
+    sec("Profile")
+    for line in optimized.get("profile_lines", []):
+        blt(line)
+
+    # Skills
+    sec("Skills")
+    skills = (optimized.get("skills", []) + [""] * 9)[:9]
+    for i in range(3):
+        p = doc.add_paragraph()
+        set_sp(p, before=1, after=1)
+        skill_tabs(p)
+        r(p, skills[i*3],   size=10, color=BLACK); r(p, "\t", size=10)
+        r(p, skills[i*3+1], size=10, color=BLACK); r(p, "\t", size=10)
+        r(p, skills[i*3+2], size=10, color=BLACK)
+
+    # Experience
+    sec("Professional Experience")
+
+    p = doc.add_paragraph(); set_sp(p, before=5, after=0)
+    r(p, "Workers\u2019 Compensation Insurance Rating Bureau of California", bold=True, size=10.5)
+    p = doc.add_paragraph(); set_sp(p, before=0, after=0)
+    r(p, "Designated Statistical Agent of the California Insurance Commissioner", italic=True, size=10, color=DARK_GREY)
+    p = doc.add_paragraph(); set_sp(p, before=3, after=0)
+    r(p, "Senior Accountant \u2013 Membership & Assessments (Promoted Feb 2026)", bold=True, size=10)
+    p = doc.add_paragraph(); set_sp(p, before=2, after=1); rtab(p)
+    r(p, "Member Services Accounting Analyst", bold=True, size=10)
+    r(p, "\t", size=10); r(p, "Jan 2022 \u2013 Feb 2026", italic=True, size=10, color=DARK_GREY)
+    for b in optimized.get("wcirb_analyst_bullets", []): blt(b)
+
+    p = doc.add_paragraph(); set_sp(p, before=3, after=1); rtab(p)
+    r(p, "Member Services Accounting Specialist", bold=True, size=10)
+    r(p, "\t", size=10); r(p, "Aug 2019 \u2013 Jan 2022", italic=True, size=10, color=DARK_GREY)
+    for b in optimized.get("wcirb_specialist_bullets", []): blt(b)
+
+    p = doc.add_paragraph(); set_sp(p, before=3, after=1); rtab(p)
+    r(p, "Accounting and Compliance Specialist", bold=True, size=10)
+    r(p, "\t", size=10); r(p, "Oct 2017 \u2013 Aug 2019", italic=True, size=10, color=DARK_GREY)
+    compliance = optimized.get("wcirb_compliance_bullets", [])
+    blt(" ".join(compliance))
+
+    p = doc.add_paragraph(); set_sp(p, before=5, after=0)
+    r(p, "East Bay Nephrology Medical Group", bold=True, size=10.5)
+    p = doc.add_paragraph(); set_sp(p, before=0, after=0)
+    r(p, "Leading Nephrology Practice in Northern California", italic=True, size=10, color=DARK_GREY)
+    p = doc.add_paragraph(); set_sp(p, before=3, after=1); rtab(p)
+    r(p, "Contracted Accounting Consultant", bold=True, size=10)
+    r(p, "\t", size=10); r(p, "Jul 2016 \u2013 Aug 2017", italic=True, size=10, color=DARK_GREY)
+    neph = optimized.get("nephrology_bullets", [])
+    blt(" ".join(neph))
+
+    # Education
+    sec("Education")
+    p = doc.add_paragraph(); set_sp(p, before=2, after=0)
+    r(p, "B.A. Economics", bold=True, size=10)
+    r(p, ",  University of California, Davis  \u2022  2016", size=10, color=DARK_GREY)
+
+    # Technical Skills
+    sec("Technical Skills")
+    p = doc.add_paragraph(); set_sp(p, before=2, after=0)
+    r(p, "Software: ", bold=True, size=10)
+    r(p, optimized.get("technical_skills", ""), size=10, color=DARK_GREY)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.getvalue()
+
+
 def get_saved_jobs_with_descriptions():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -579,6 +761,13 @@ with tab4:
             opt_title, opt_desc = options[choice]
             st.text_area("Job description preview", value=opt_desc[:800] + "...", height=150, disabled=True)
 
+    template_choice = st.radio(
+        "Resume template",
+        ["Original Format", "Modern Design (v2)"],
+        horizontal=True,
+        help="Original Format preserves the exact layout of Steve's current resume. Modern Design (v2) uses a clean rebuilt version with the same style.",
+    )
+
     if st.button("🎯 Optimize Resume for ATS", type="primary", disabled=not opt_desc):
         with st.spinner("AI is optimizing the resume — this takes ~20 seconds..."):
             try:
@@ -586,8 +775,13 @@ with tab4:
                 keywords  = optimized.get("keywords_added", [])
                 if keywords:
                     st.success(f"✅ {len(keywords)} ATS keywords woven in: {', '.join(keywords)}")
-                docx_bytes = build_resume_docx(optimized)
-                fname = f"Stanislav_Spektor_{opt_title.replace(' ', '_')}_Resume.docx" if opt_title else "Stanislav_Spektor_Resume_Optimized.docx"
+                if template_choice == "Modern Design (v2)":
+                    docx_bytes = build_resume_docx_v2(optimized)
+                    suffix = "_v2"
+                else:
+                    docx_bytes = build_resume_docx(optimized)
+                    suffix = ""
+                fname = f"Stanislav_Spektor_{opt_title.replace(' ', '_')}_Resume{suffix}.docx" if opt_title else f"Stanislav_Spektor_Resume_Optimized{suffix}.docx"
                 st.download_button(
                     "⬇️ Download Optimized Resume (.docx)",
                     docx_bytes,
