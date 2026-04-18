@@ -4,6 +4,7 @@ import requests
 import sqlite3
 import json
 import os
+import base64
 from datetime import date
 
 try:
@@ -574,8 +575,25 @@ def delete_application(app_id):
 init_db()
 resume_text = load_resume()
 
-st.title("💼 Steve's Job Finder")
-st.caption("AI-powered job search for Stanislav Spektor · Senior Accountant")
+# ── Header ─────────────────────────────────────────────────────────────────────
+_img_path = os.path.join(os.path.dirname(__file__), "steve_photo.jpeg")
+_col_title, _col_photo = st.columns([3, 1.15])
+
+with _col_title:
+    st.title("💼 Steve's Job Finder")
+    st.caption("AI-powered job search for Stanislav Spektor · Senior Accountant")
+
+with _col_photo:
+    if os.path.exists(_img_path):
+        with open(_img_path, "rb") as _f:
+            _b64 = base64.b64encode(_f.read()).decode()
+        st.markdown(
+            f'<img src="data:image/jpeg;base64,{_b64}" '
+            'style="width:100%;border-radius:16px;'
+            'box-shadow:0 4px 16px rgba(0,0,0,0.22);'
+            'margin-top:4px;display:block;">',
+            unsafe_allow_html=True,
+        )
 
 tab1, tab2, tab3, tab4 = st.tabs(["🔍 Search Jobs", "📋 My Applications", "💡 Resume Tips", "📄 ATS Resume"])
 
