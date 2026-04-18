@@ -245,105 +245,60 @@ Return this exact JSON structure:
     return json.loads(raw.strip())
 
 
-def build_resume_pdf(optimized):
-    from reportlab.lib.pagesizes import letter
-    from reportlab.lib.styles import ParagraphStyle
-    from reportlab.lib.units import inch
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle
-    from reportlab.lib import colors
-    from reportlab.lib.enums import TA_CENTER
+def build_resume_docx(optimized):
+    from docx import Document
     import io
 
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter,
-                            rightMargin=0.75*inch, leftMargin=0.75*inch,
-                            topMargin=0.75*inch, bottomMargin=0.75*inch)
+    template_path = os.path.join(os.path.dirname(__file__), "Stanislav_Spektor_Resume.docx")
+    doc = Document(template_path)
+    paras = doc.paragraphs
 
-    name_s    = ParagraphStyle('N', fontSize=18, fontName='Helvetica-Bold', alignment=TA_CENTER, spaceAfter=4)
-    contact_s = ParagraphStyle('C', fontSize=10, fontName='Helvetica', alignment=TA_CENTER, spaceAfter=6)
-    header_s  = ParagraphStyle('H', fontSize=11, fontName='Helvetica-Bold', spaceBefore=8, spaceAfter=3)
-    body_s    = ParagraphStyle('B', fontSize=10, fontName='Helvetica', spaceAfter=2, leading=14)
-    italic_s  = ParagraphStyle('I', fontSize=10, fontName='Helvetica-Oblique', spaceAfter=2)
-    bold_s    = ParagraphStyle('Bo', fontSize=10, fontName='Helvetica-Bold', spaceBefore=6, spaceAfter=1)
-    role_s    = ParagraphStyle('R', fontSize=10, fontName='Helvetica-BoldOblique', spaceAfter=2)
-    bullet_s  = ParagraphStyle('Bu', fontSize=10, fontName='Helvetica', leftIndent=14, spaceAfter=2, leading=13)
+    def set_text(para, text):
+        """Replace all runs with a single run containing new text, preserving paragraph style."""
+        if not para.runs:
+            para.add_run(text)
+            return
+        para.runs[0].text = text
+        for run in para.runs[1:]:
+            run.text = ""
 
-    hr  = HRFlowable(width="100%", thickness=1,   color=colors.black, spaceAfter=4)
-    thr = HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#888888"), spaceAfter=4)
+    # Profile (paragraphs 4, 5, 6)
+    for i, idx in enumerate([4, 5, 6]):
+        lines = optimized.get("profile_lines", [])
+        if i < len(lines):
+            set_text(paras[idx], lines[i])
 
-    story = []
+    # Skills (paragraphs 9, 10, 11) — tab-separated triples
+    skills = (optimized.get("skills", []) + [""] * 9)[:9]
+    for i, idx in enumerate([9, 10, 11]):
+        set_text(paras[idx], "\t".join(skills[i*3:(i+1)*3]))
 
-    # Header
-    story += [
-        Paragraph("Stanislav Spektor", name_s),
-        Paragraph("s.spektor93@gmail.com  |  925-639-3898  |  linkedin.com/in/stanislav-spektor", contact_s),
-        hr,
-    ]
+    # WCIRB Analyst bullets (paragraphs 18–21)
+    for i, idx in enumerate([18, 19, 20, 21]):
+        bullets = optimized.get("wcirb_analyst_bullets", [])
+        set_text(paras[idx], bullets[i] if i < len(bullets) else "")
 
-    # Profile
-    story.append(Paragraph("Profile", header_s))
-    for line in optimized.get("profile_lines", []):
-        story.append(Paragraph(line, body_s))
-    story.append(thr)
+    # WCIRB Specialist bullets (paragraphs 23–25)
+    for i, idx in enumerate([23, 24, 25]):
+        bullets = optimized.get("wcirb_specialist_bullets", [])
+        set_text(paras[idx], bullets[i] if i < len(bullets) else "")
 
-    # Skills — 3-column table with wrapping Paragraphs
-    story.append(Paragraph("Skills", header_s))
-    skills = optimized.get("skills", [])
-    padded = skills + [""] * (9 - len(skills)) if len(skills) < 9 else skills[:9]
-    rows = [[Paragraph(padded[i],   body_s),
-             Paragraph(padded[i+1], body_s),
-             Paragraph(padded[i+2], body_s)] for i in range(0, 9, 3)]
-    col_w = 7.0 * inch / 3
-    t = Table(rows, colWidths=[col_w, col_w, col_w])
-    t.setStyle(TableStyle([
-        ('VALIGN',        (0, 0), (-1, -1), 'TOP'),
-        ('TOPPADDING',    (0, 0), (-1, -1), 2),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        ('LEFTPADDING',   (0, 0), (-1, -1), 0),
-    ]))
-    story.append(t)
-    story.append(thr)
+    # WCIRB Compliance (paragraph 27 — single paragraph, join bullets)
+    compliance = optimized.get("wcirb_compliance_bullets", [])
+    set_text(paras[27], " ".join(compliance))
 
-    # Experience
-    story.append(Paragraph("Professional Experience", header_s))
+    # Nephrology (paragraph 32 — preserve bullet prefix)
+    neph = optimized.get("nephrology_bullets", [])
+    if neph:
+        set_text(paras[32], "• \t" + " ".join(neph))
 
-    story.append(Paragraph("Workers' Compensation Insurance Rating Bureau of California", bold_s))
-    story.append(Paragraph("Designated Statistical Agent of the California Insurance Commissioner", italic_s))
-    story.append(Paragraph("Senior Accountant \u2013 Membership &amp; Assessments (Promoted Feb 2026)", role_s))
-    story.append(Paragraph("Member Services Accounting Analyst:&nbsp; Jan 2022 \u2013 Feb 2026", role_s))
-    for b in optimized.get("wcirb_analyst_bullets", []):
-        story.append(Paragraph(f"\u2022 {b}", bullet_s))
+    # Technical Skills (paragraph 37)
+    set_text(paras[37], "Software: " + optimized.get("technical_skills", ""))
 
-    story.append(Spacer(1, 4))
-    story.append(Paragraph("Member Services Accounting Specialist:&nbsp; Aug 2019 \u2013 Jan 2022", role_s))
-    for b in optimized.get("wcirb_specialist_bullets", []):
-        story.append(Paragraph(f"\u2022 {b}", bullet_s))
-
-    story.append(Spacer(1, 4))
-    story.append(Paragraph("Accounting and Compliance Specialist:&nbsp; Oct 2017 \u2013 Aug 2019", role_s))
-    for b in optimized.get("wcirb_compliance_bullets", []):
-        story.append(Paragraph(f"\u2022 {b}", bullet_s))
-
-    story.append(Paragraph("East Bay Nephrology Medical Group", bold_s))
-    story.append(Paragraph("Leading Nephrology Practice in Northern California", italic_s))
-    story.append(Paragraph("Contracted Accounting Consultant:&nbsp; Jul 2016 \u2013 Aug 2017", role_s))
-    for b in optimized.get("nephrology_bullets", []):
-        story.append(Paragraph(f"\u2022 {b}", bullet_s))
-
-    story.append(thr)
-
-    # Education
-    story.append(Paragraph("Education", header_s))
-    story.append(Paragraph("B.A. Economics, University of California, Davis  |  2016", body_s))
-    story.append(thr)
-
-    # Technical Skills
-    story.append(Paragraph("Technical Skills", header_s))
-    story.append(Paragraph(f"Software: {optimized.get('technical_skills', '')}", body_s))
-
-    doc.build(story)
-    buffer.seek(0)
-    return buffer.getvalue()
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.getvalue()
 
 
 def get_saved_jobs_with_descriptions():
@@ -595,13 +550,13 @@ with tab4:
                 keywords  = optimized.get("keywords_added", [])
                 if keywords:
                     st.success(f"✅ {len(keywords)} ATS keywords woven in: {', '.join(keywords)}")
-                pdf_bytes = build_resume_pdf(optimized)
-                fname = f"Stanislav_Spektor_{opt_title.replace(' ', '_')}_Resume.pdf" if opt_title else "Stanislav_Spektor_Resume_Optimized.pdf"
+                docx_bytes = build_resume_docx(optimized)
+                fname = f"Stanislav_Spektor_{opt_title.replace(' ', '_')}_Resume.docx" if opt_title else "Stanislav_Spektor_Resume_Optimized.docx"
                 st.download_button(
-                    "⬇️ Download Optimized Resume (PDF)",
-                    pdf_bytes,
+                    "⬇️ Download Optimized Resume (.docx)",
+                    docx_bytes,
                     file_name=fname,
-                    mime="application/pdf",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 )
             except Exception as e:
                 st.error(f"Something went wrong: {e}")
