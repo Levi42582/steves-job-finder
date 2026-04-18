@@ -286,16 +286,20 @@ def build_resume_pdf(optimized):
         story.append(Paragraph(line, body_s))
     story.append(thr)
 
-    # Skills — 3-column table
+    # Skills — 3-column table with wrapping Paragraphs
     story.append(Paragraph("Skills", header_s))
     skills = optimized.get("skills", [])
-    rows = [skills[i:i+3] + [""] * (3 - len(skills[i:i+3])) for i in range(0, len(skills), 3)]
-    t = Table(rows, colWidths=[2.3*inch, 2.3*inch, 2.3*inch])
+    padded = skills + [""] * (9 - len(skills)) if len(skills) < 9 else skills[:9]
+    rows = [[Paragraph(padded[i],   body_s),
+             Paragraph(padded[i+1], body_s),
+             Paragraph(padded[i+2], body_s)] for i in range(0, 9, 3)]
+    col_w = 7.0 * inch / 3
+    t = Table(rows, colWidths=[col_w, col_w, col_w])
     t.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('VALIGN',        (0, 0), (-1, -1), 'TOP'),
         ('TOPPADDING',    (0, 0), (-1, -1), 2),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 0),
     ]))
     story.append(t)
     story.append(thr)
