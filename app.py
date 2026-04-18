@@ -986,9 +986,6 @@ with tab4:
         with st.spinner("AI is optimizing the resume — this takes ~20 seconds..."):
             try:
                 optimized = optimize_resume_for_job(opt_title, opt_desc)
-                keywords  = optimized.get("keywords_added", [])
-                if keywords:
-                    st.success(f"✅ {len(keywords)} ATS keywords woven in: {', '.join(keywords)}")
                 if template_choice == "Modern Design (v3)":
                     docx_bytes = build_resume_docx_v3(optimized)
                     suffix = "_v3"
@@ -999,11 +996,19 @@ with tab4:
                     docx_bytes = build_resume_docx(optimized)
                     suffix = ""
                 fname = f"Stanislav_Spektor_{opt_title.replace(' ', '_')}_Resume{suffix}.docx" if opt_title else f"Stanislav_Spektor_Resume_Optimized{suffix}.docx"
-                st.download_button(
-                    "⬇️ Download Optimized Resume (.docx)",
-                    docx_bytes,
-                    file_name=fname,
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                )
+                st.session_state["ats_keywords"]   = optimized.get("keywords_added", [])
+                st.session_state["ats_docx_bytes"] = docx_bytes
+                st.session_state["ats_fname"]      = fname
             except Exception as e:
                 st.error(f"Something went wrong: {e}")
+
+    if st.session_state.get("ats_keywords"):
+        st.success(f"✅ {len(st.session_state['ats_keywords'])} ATS keywords woven in: {', '.join(st.session_state['ats_keywords'])}")
+
+    if st.session_state.get("ats_docx_bytes"):
+        st.download_button(
+            "⬇️ Download Optimized Resume (.docx)",
+            st.session_state["ats_docx_bytes"],
+            file_name=st.session_state.get("ats_fname", "resume.docx"),
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
