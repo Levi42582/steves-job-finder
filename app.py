@@ -194,28 +194,31 @@ def _fetch_remoteok(title):
         return []
 
 def search_jobs(title, location, min_salary=None):
+    # Fetch all three sources in parallel
     with ThreadPoolExecutor(max_workers=3) as ex:
-        futures = {
-            ex.submit(_fetch_adzuna, title, location, min_salary): "adzuna",
-            ex.submit(_fetch_muse, title, location): "muse",
-            ex.submit(_fetch_remoteok, title): "remoteok",
-        }
-        all_raw = []
-        for f in as_completed(futures):
-            try: all_raw.extend(f.result())
-            except Exception: pass
+        f_adzuna   = ex.submit(_fetch_adzuna, title, location, min_salary)
+        f_muse     = ex.submit(_fetch_muse, title, location)
+        f_remoteok = ex.submit(_fetch_remoteok, title)
+        try: adzuna_jobs   = f_adzuna.result()
+        except Exception: adzuna_jobs = []
+        try: muse_jobs     = f_muse.result()
+        except Exception: muse_jobs = []
+        try: remoteok_jobs = f_remoteok.result()
+        except Exception: remoteok_jobs = []
 
-    # deduplicate by (title, company)
+    # Adzuna goes in first — it's the primary source and has the most data.
+    # Other sources only add jobs not already in Adzuna.
     seen, deduped = set(), []
-    for j in all_raw:
+    for j in adzuna_jobs:
         key = (j.get("title","").lower().strip(), j.get("company",{}).get("display_name","").lower().strip())
         if key not in seen:
             seen.add(key)
             deduped.append(j)
-
-    if min_salary:
-        deduped = [j for j in deduped if
-                   j.get("salary_min") is None or (j.get("salary_min") or 0) >= min_salary]
+    for j in muse_jobs + remoteok_jobs:
+        key = (j.get("title","").lower().strip(), j.get("company",{}).get("display_name","").lower().strip())
+        if key not in seen:
+            seen.add(key)
+            deduped.append(j)
 
     return deduped
 
