@@ -520,6 +520,193 @@ def build_resume_docx_v2(optimized):
     return buf.getvalue()
 
 
+def build_resume_docx_v3(optimized):
+    from docx import Document
+    from docx.shared import Pt, RGBColor, Inches
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+    import io
+
+    FONT      = "Calibri"
+    TEAL      = RGBColor(0x31, 0x84, 0x9B)
+    BLACK     = RGBColor(0x1A, 0x1A, 0x1A)
+    GREY      = RGBColor(0x55, 0x55, 0x55)
+
+    def _pPr(p):
+        return p._p.get_or_add_pPr()
+
+    def sp(p, before=0, after=0, line=240):
+        pPr = _pPr(p)
+        e = pPr.find(qn("w:spacing"))
+        if e is not None: pPr.remove(e)
+        el = OxmlElement("w:spacing")
+        el.set(qn("w:before"),   str(int(before * 20)))
+        el.set(qn("w:after"),    str(int(after  * 20)))
+        el.set(qn("w:line"),     str(line))
+        el.set(qn("w:lineRule"), "auto")
+        pPr.append(el)
+
+    def hborder(p, side, color="31849B", sz=6, space=2):
+        pPr = _pPr(p)
+        pBdr = pPr.find(qn("w:pBdr"))
+        if pBdr is None:
+            pBdr = OxmlElement("w:pBdr"); pPr.append(pBdr)
+        el = OxmlElement(f"w:{side}")
+        el.set(qn("w:val"), "single"); el.set(qn("w:sz"), str(sz))
+        el.set(qn("w:space"), str(space)); el.set(qn("w:color"), color)
+        pBdr.append(el)
+
+    def lbar(p, sz=24, space=9):
+        """Thick teal left accent bar on section headers."""
+        pPr = _pPr(p)
+        pBdr = pPr.find(qn("w:pBdr"))
+        if pBdr is None:
+            pBdr = OxmlElement("w:pBdr"); pPr.append(pBdr)
+        el = OxmlElement("w:left")
+        el.set(qn("w:val"), "single"); el.set(qn("w:sz"), str(sz))
+        el.set(qn("w:space"), str(space)); el.set(qn("w:color"), "31849B")
+        pBdr.append(el)
+
+    def rtab(p, inches=7.3):
+        pPr = _pPr(p)
+        tabs = pPr.find(qn("w:tabs"))
+        if tabs is None:
+            tabs = OxmlElement("w:tabs"); pPr.append(tabs)
+        t = OxmlElement("w:tab")
+        t.set(qn("w:val"), "right"); t.set(qn("w:pos"), str(int(inches * 1440)))
+        tabs.append(t)
+
+    def ind(p, left=0.0, hang=0.0):
+        pPr = _pPr(p)
+        el = pPr.find(qn("w:ind"))
+        if el is None:
+            el = OxmlElement("w:ind"); pPr.append(el)
+        if left:  el.set(qn("w:left"),    str(int(left * 1440)))
+        if hang:  el.set(qn("w:hanging"), str(int(hang * 1440)))
+
+    def r(p, text, bold=False, italic=False, size=10, color=BLACK, sc=False):
+        rn = p.add_run(text)
+        rn.bold = bold; rn.italic = italic
+        rn.font.name = FONT; rn.font.size = Pt(size)
+        rn.font.color.rgb = color
+        if sc: rn.font.small_caps = True
+        return rn
+
+    def sec(label):
+        p = doc.add_paragraph()
+        sp(p, before=8, after=3)
+        lbar(p)
+        r(p, label, bold=True, size=10.5, color=TEAL, sc=True)
+        return p
+
+    def blt(text):
+        p = doc.add_paragraph()
+        sp(p, before=0, after=1.5)
+        ind(p, left=0.18, hang=0.14)
+        r(p, "\u2022  " + text, size=9.5, color=BLACK)
+        return p
+
+    # ── Document setup ─────────────────────────────────────────────────────────
+    doc = Document()
+    s = doc.sections[0]
+    s.top_margin = s.left_margin = s.right_margin = Inches(0.5)
+    s.bottom_margin = Inches(0.45)
+    nm = doc.styles["Normal"]
+    nm.font.name = FONT; nm.font.size = Pt(10)
+    nm.paragraph_format.space_before = Pt(0)
+    nm.paragraph_format.space_after  = Pt(0)
+
+    # ── Name ───────────────────────────────────────────────────────────────────
+    p = doc.add_paragraph()
+    sp(p, before=0, after=2)
+    hborder(p, "bottom", sz=10, space=3)
+    r(p, "Stanislav Spektor", bold=True, size=20, color=BLACK)
+
+    # ── Contact ────────────────────────────────────────────────────────────────
+    p = doc.add_paragraph()
+    sp(p, before=4, after=0)
+    r(p, "s.spektor93@gmail.com", size=9, color=GREY)
+    r(p, "   \u00b7   ", size=9, color=TEAL)
+    r(p, "925-639-3898", size=9, color=GREY)
+    r(p, "   \u00b7   ", size=9, color=TEAL)
+    r(p, "linkedin.com/in/stanislav-spektor", size=9, color=GREY)
+
+    # ── Profile ────────────────────────────────────────────────────────────────
+    sec("Profile")
+    profile_text = "  ".join(optimized.get("profile_lines", []))
+    p = doc.add_paragraph()
+    sp(p, before=1, after=3)
+    r(p, profile_text, size=9.5, color=GREY)
+
+    # ── Core Competencies ──────────────────────────────────────────────────────
+    sec("Core Competencies")
+    skills = [s for s in (optimized.get("skills", []) + [""] * 9)[:9] if s]
+    p = doc.add_paragraph()
+    sp(p, before=1, after=3)
+    for i, skill in enumerate(skills):
+        r(p, skill, size=9.5, color=BLACK)
+        if i < len(skills) - 1:
+            r(p, "   \u00b7   ", size=9.5, color=TEAL)
+
+    # ── Professional Experience ────────────────────────────────────────────────
+    sec("Professional Experience")
+
+    # WCIRB
+    p = doc.add_paragraph(); sp(p, before=4, after=0)
+    r(p, "Workers\u2019 Compensation Insurance Rating Bureau of California", bold=True, size=10.5)
+    p = doc.add_paragraph(); sp(p, before=0, after=2)
+    r(p, "Designated Statistical Agent of the California Insurance Commissioner", italic=True, size=9, color=GREY)
+
+    p = doc.add_paragraph(); sp(p, before=3, after=0)
+    r(p, "Senior Accountant \u2013 Membership & Assessments  ", bold=True, size=10, color=BLACK)
+    r(p, "(Promoted Feb 2026)", italic=True, size=9, color=GREY)
+
+    p = doc.add_paragraph(); sp(p, before=2, after=1); rtab(p)
+    r(p, "Member Services Accounting Analyst", bold=True, size=10, color=BLACK)
+    r(p, "\t"); r(p, "Jan 2022 \u2013 Feb 2026", italic=True, size=9, color=GREY)
+    for b in optimized.get("wcirb_analyst_bullets", []): blt(b)
+
+    p = doc.add_paragraph(); sp(p, before=3, after=1); rtab(p)
+    r(p, "Member Services Accounting Specialist", bold=True, size=10, color=BLACK)
+    r(p, "\t"); r(p, "Aug 2019 \u2013 Jan 2022", italic=True, size=9, color=GREY)
+    for b in optimized.get("wcirb_specialist_bullets", []): blt(b)
+
+    p = doc.add_paragraph(); sp(p, before=3, after=1); rtab(p)
+    r(p, "Accounting and Compliance Specialist", bold=True, size=10, color=BLACK)
+    r(p, "\t"); r(p, "Oct 2017 \u2013 Aug 2019", italic=True, size=9, color=GREY)
+    compliance = optimized.get("wcirb_compliance_bullets", [])
+    blt(" ".join(compliance))
+
+    # Nephrology
+    p = doc.add_paragraph(); sp(p, before=5, after=0)
+    r(p, "East Bay Nephrology Medical Group", bold=True, size=10.5)
+    p = doc.add_paragraph(); sp(p, before=0, after=2)
+    r(p, "Leading Nephrology Practice in Northern California", italic=True, size=9, color=GREY)
+
+    p = doc.add_paragraph(); sp(p, before=3, after=1); rtab(p)
+    r(p, "Contracted Accounting Consultant", bold=True, size=10, color=BLACK)
+    r(p, "\t"); r(p, "Jul 2016 \u2013 Aug 2017", italic=True, size=9, color=GREY)
+    blt(" ".join(optimized.get("nephrology_bullets", [])))
+
+    # ── Education ──────────────────────────────────────────────────────────────
+    sec("Education")
+    p = doc.add_paragraph(); sp(p, before=2, after=0)
+    r(p, "B.A. Economics", bold=True, size=9.5)
+    r(p, ",  University of California, Davis  \u00b7  2016", size=9.5, color=GREY)
+
+    # ── Technical Skills ───────────────────────────────────────────────────────
+    sec("Technical Skills")
+    p = doc.add_paragraph(); sp(p, before=2, after=0)
+    r(p, "Software: ", bold=True, size=9.5)
+    r(p, optimized.get("technical_skills", ""), size=9.5, color=GREY)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.getvalue()
+
+
 def get_saved_jobs_with_descriptions():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -776,9 +963,9 @@ with tab4:
 
     template_choice = st.radio(
         "Resume template",
-        ["Original Format", "Modern Design (v2)"],
+        ["Original Format", "Modern Design (v2)", "Modern Design (v3)"],
         horizontal=True,
-        help="Original Format preserves the exact layout of Steve's current resume. Modern Design (v2) uses a clean rebuilt version with the same style.",
+        help="v3 uses a left accent bar, flowing skills, and tighter typographic hierarchy — designed for recruiter eyes.",
     )
 
     if st.button("🎯 Optimize Resume for ATS", type="primary", disabled=not opt_desc):
@@ -788,7 +975,10 @@ with tab4:
                 keywords  = optimized.get("keywords_added", [])
                 if keywords:
                     st.success(f"✅ {len(keywords)} ATS keywords woven in: {', '.join(keywords)}")
-                if template_choice == "Modern Design (v2)":
+                if template_choice == "Modern Design (v3)":
+                    docx_bytes = build_resume_docx_v3(optimized)
+                    suffix = "_v3"
+                elif template_choice == "Modern Design (v2)":
                     docx_bytes = build_resume_docx_v2(optimized)
                     suffix = "_v2"
                 else:
