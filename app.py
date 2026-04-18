@@ -202,6 +202,150 @@ Be specific — reference actual content from the resume."""
             yield text
 
 
+def optimize_resume_for_job(job_title, job_description):
+    client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
+    msg = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=2500,
+        messages=[{
+            "role": "user",
+            "content": f"""You are an ATS resume optimizer. Optimize Stanislav Spektor's resume for this specific job.
+
+ORIGINAL RESUME:
+{RESUME_TEXT}
+
+TARGET JOB: {job_title}
+JOB DESCRIPTION: {job_description[:3000]}
+
+Rules:
+- Keep all facts, companies, dates, and numbers EXACTLY accurate — never fabricate
+- Naturally incorporate relevant ATS keywords from the job description
+- Rewrite bullet points to emphasize the most relevant experience
+- Keep the same number of bullet points per role
+- Return ONLY valid JSON, no other text
+
+Return this exact JSON structure:
+{{
+  "profile_lines": ["line1", "line2", "line3"],
+  "skills": ["skill1", "skill2", "skill3", "skill4", "skill5", "skill6", "skill7", "skill8", "skill9"],
+  "wcirb_analyst_bullets": ["bullet1", "bullet2", "bullet3", "bullet4"],
+  "wcirb_specialist_bullets": ["bullet1", "bullet2", "bullet3"],
+  "wcirb_compliance_bullets": ["bullet1", "bullet2"],
+  "nephrology_bullets": ["bullet1", "bullet2"],
+  "technical_skills": "comma-separated technical skills string",
+  "keywords_added": ["kw1", "kw2", "kw3", "kw4", "kw5"]
+}}"""
+        }]
+    )
+    return json.loads(msg.content[0].text)
+
+
+def build_resume_pdf(optimized):
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER
+    import io
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter,
+                            rightMargin=0.75*inch, leftMargin=0.75*inch,
+                            topMargin=0.75*inch, bottomMargin=0.75*inch)
+
+    name_s    = ParagraphStyle('N', fontSize=18, fontName='Helvetica-Bold', alignment=TA_CENTER, spaceAfter=4)
+    contact_s = ParagraphStyle('C', fontSize=10, fontName='Helvetica', alignment=TA_CENTER, spaceAfter=6)
+    header_s  = ParagraphStyle('H', fontSize=11, fontName='Helvetica-Bold', spaceBefore=8, spaceAfter=3)
+    body_s    = ParagraphStyle('B', fontSize=10, fontName='Helvetica', spaceAfter=2, leading=14)
+    italic_s  = ParagraphStyle('I', fontSize=10, fontName='Helvetica-Oblique', spaceAfter=2)
+    bold_s    = ParagraphStyle('Bo', fontSize=10, fontName='Helvetica-Bold', spaceBefore=6, spaceAfter=1)
+    role_s    = ParagraphStyle('R', fontSize=10, fontName='Helvetica-BoldOblique', spaceAfter=2)
+    bullet_s  = ParagraphStyle('Bu', fontSize=10, fontName='Helvetica', leftIndent=14, spaceAfter=2, leading=13)
+
+    hr  = HRFlowable(width="100%", thickness=1,   color=colors.black, spaceAfter=4)
+    thr = HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#888888"), spaceAfter=4)
+
+    story = []
+
+    # Header
+    story += [
+        Paragraph("Stanislav Spektor", name_s),
+        Paragraph("s.spektor93@gmail.com  |  925-639-3898  |  linkedin.com/in/stanislav-spektor", contact_s),
+        hr,
+    ]
+
+    # Profile
+    story.append(Paragraph("Profile", header_s))
+    for line in optimized.get("profile_lines", []):
+        story.append(Paragraph(line, body_s))
+    story.append(thr)
+
+    # Skills — 3-column table
+    story.append(Paragraph("Skills", header_s))
+    skills = optimized.get("skills", [])
+    rows = [skills[i:i+3] + [""] * (3 - len(skills[i:i+3])) for i in range(0, len(skills), 3)]
+    t = Table(rows, colWidths=[2.3*inch, 2.3*inch, 2.3*inch])
+    t.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('TOPPADDING',    (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+    ]))
+    story.append(t)
+    story.append(thr)
+
+    # Experience
+    story.append(Paragraph("Professional Experience", header_s))
+
+    story.append(Paragraph("Workers' Compensation Insurance Rating Bureau of California", bold_s))
+    story.append(Paragraph("Designated Statistical Agent of the California Insurance Commissioner", italic_s))
+    story.append(Paragraph("Senior Accountant \u2013 Membership &amp; Assessments (Promoted Feb 2026)", role_s))
+    story.append(Paragraph("Member Services Accounting Analyst:&nbsp; Jan 2022 \u2013 Feb 2026", role_s))
+    for b in optimized.get("wcirb_analyst_bullets", []):
+        story.append(Paragraph(f"\u2022 {b}", bullet_s))
+
+    story.append(Spacer(1, 4))
+    story.append(Paragraph("Member Services Accounting Specialist:&nbsp; Aug 2019 \u2013 Jan 2022", role_s))
+    for b in optimized.get("wcirb_specialist_bullets", []):
+        story.append(Paragraph(f"\u2022 {b}", bullet_s))
+
+    story.append(Spacer(1, 4))
+    story.append(Paragraph("Accounting and Compliance Specialist:&nbsp; Oct 2017 \u2013 Aug 2019", role_s))
+    for b in optimized.get("wcirb_compliance_bullets", []):
+        story.append(Paragraph(f"\u2022 {b}", bullet_s))
+
+    story.append(Paragraph("East Bay Nephrology Medical Group", bold_s))
+    story.append(Paragraph("Leading Nephrology Practice in Northern California", italic_s))
+    story.append(Paragraph("Contracted Accounting Consultant:&nbsp; Jul 2016 \u2013 Aug 2017", role_s))
+    for b in optimized.get("nephrology_bullets", []):
+        story.append(Paragraph(f"\u2022 {b}", bullet_s))
+
+    story.append(thr)
+
+    # Education
+    story.append(Paragraph("Education", header_s))
+    story.append(Paragraph("B.A. Economics, University of California, Davis  |  2016", body_s))
+    story.append(thr)
+
+    # Technical Skills
+    story.append(Paragraph("Technical Skills", header_s))
+    story.append(Paragraph(f"Software: {optimized.get('technical_skills', '')}", body_s))
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def get_saved_jobs_with_descriptions():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, title, company, job_description FROM applications WHERE job_description != '' ORDER BY id DESC")
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+
 def save_application(title, company, location, url, salary, description):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -251,7 +395,7 @@ resume_text = load_resume()
 st.title("💼 Steve's Job Finder")
 st.caption("AI-powered job search for Stanislav Spektor · Senior Accountant")
 
-tab1, tab2, tab3 = st.tabs(["🔍 Search Jobs", "📋 My Applications", "💡 Resume Tips"])
+tab1, tab2, tab3, tab4 = st.tabs(["🔍 Search Jobs", "📋 My Applications", "💡 Resume Tips", "📄 ATS Resume"])
 
 
 # ── Tab 1: Search ──────────────────────────────────────────────────────────────
@@ -411,3 +555,44 @@ with tab3:
     if st.button("Analyze My Resume", type="primary"):
         st.markdown("---")
         st.write_stream(get_resume_tips(target, resume_text))
+
+
+# ── Tab 4: ATS Resume Optimizer ───────────────────────────────────────────────
+with tab4:
+    st.subheader("ATS Resume Optimizer")
+    st.write("Tailors Steve's resume to pass Applicant Tracking Systems — downloads as a formatted PDF.")
+
+    source = st.radio("Job source", ["Paste job description", "From saved jobs"], horizontal=True)
+
+    opt_title, opt_desc = "", ""
+
+    if source == "Paste job description":
+        opt_title = st.text_input("Job title", placeholder="e.g. Accounting Manager")
+        opt_desc  = st.text_area("Paste the full job description here", height=220)
+    else:
+        saved_jobs = get_saved_jobs_with_descriptions()
+        if not saved_jobs:
+            st.info("No saved jobs with descriptions yet. Search and save jobs first.")
+        else:
+            options = {f"{j[1]} at {j[2]}": (j[1], j[3]) for j in saved_jobs}
+            choice  = st.selectbox("Select a saved job", list(options.keys()))
+            opt_title, opt_desc = options[choice]
+            st.text_area("Job description preview", value=opt_desc[:800] + "...", height=150, disabled=True)
+
+    if st.button("🎯 Optimize Resume for ATS", type="primary", disabled=not opt_desc):
+        with st.spinner("AI is optimizing the resume — this takes ~20 seconds..."):
+            try:
+                optimized = optimize_resume_for_job(opt_title, opt_desc)
+                keywords  = optimized.get("keywords_added", [])
+                if keywords:
+                    st.success(f"✅ {len(keywords)} ATS keywords woven in: {', '.join(keywords)}")
+                pdf_bytes = build_resume_pdf(optimized)
+                fname = f"Stanislav_Spektor_{opt_title.replace(' ', '_')}_Resume.pdf" if opt_title else "Stanislav_Spektor_Resume_Optimized.pdf"
+                st.download_button(
+                    "⬇️ Download Optimized Resume (PDF)",
+                    pdf_bytes,
+                    file_name=fname,
+                    mime="application/pdf",
+                )
+            except Exception as e:
+                st.error(f"Something went wrong: {e}")
