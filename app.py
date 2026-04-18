@@ -237,7 +237,12 @@ Return this exact JSON structure:
 }}"""
         }]
     )
-    return json.loads(msg.content[0].text)
+    raw = msg.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    return json.loads(raw.strip())
 
 
 def build_resume_pdf(optimized):
