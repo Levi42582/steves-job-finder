@@ -1,5 +1,4 @@
 streamlit
 anthropic
 requests
-python-docx
 python-dotenv

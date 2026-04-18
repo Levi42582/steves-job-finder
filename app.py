@@ -5,16 +5,67 @@ import sqlite3
 import json
 import os
 from datetime import date
-from docx import Document
-from dotenv import load_dotenv
 
-load_dotenv("/Users/eugenelevinson/Desktop/VS Code Projects/.env")
+try:
+    from dotenv import load_dotenv
+    load_dotenv("/Users/eugenelevinson/Desktop/VS Code Projects/.env")
+except Exception:
+    pass
 
-RESUME_PATH = "/Users/eugenelevinson/Desktop/VS Code Projects/Steve's resume /Stanislav_Spektor_Resume.docx"
-ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY")
-ADZUNA_APP_ID = os.getenv("ADZUNA_APP_ID")
-ADZUNA_APP_KEY = os.getenv("ADZUNA_APP_KEY")
+def _secret(key):
+    try:
+        return st.secrets[key]
+    except Exception:
+        return os.getenv(key)
+
+ANTHROPIC_KEY = _secret("ANTHROPIC_API_KEY")
+ADZUNA_APP_ID = _secret("ADZUNA_APP_ID")
+ADZUNA_APP_KEY = _secret("ADZUNA_APP_KEY")
 DB_PATH = os.path.join(os.path.dirname(__file__), "applications.db")
+
+RESUME_TEXT = """Stanislav Spektor
+s.spektor93@gmail.com | 925-639-3898 | linkedin.com/in/stanislav-spektor
+
+Profile
+8+ years in financial analysis, reporting, compliance, forecasting and process improvement.
+Collaborates cross-functionally to meet deadlines and deliver actionable, accurate financial reports.
+Designs and tests financial systems, streamlines workflows, and handles high-volume reconciliations.
+
+Skills
+Financial Analysis & Reporting | Month-End Close & Reconciliation | ERP (Sage Intacct)
+Process Improvement & Documentation | UAT & Implementation Planning | Compliance & Regulatory Reporting
+Process Automation (Macros) | Cross-Functional Collaboration | Budgeting & Forecasting
+
+Professional Experience
+
+Workers' Compensation Insurance Rating Bureau of California
+Senior Accountant – Membership & Assessments (Promoted Feb 2026)
+Member Services Accounting Analyst: Jan 2022 – Feb 2026
+- Provided comprehensive financial and accounting support for a large portfolio of 400+ member insurers.
+- Co-led design, testing, and deployment of a cloud-based billing and assessment platform; executed 250+ test cases, delivered a zero-defect rollout.
+- Lead financial reconciliation processes (AR, benefits, high-volume member accounts), completing reconciliations within 3 days post-close and reducing backlog 90%.
+- Improved revenue cycle performance by reducing aging balances 50% through targeted interventions.
+
+Member Services Accounting Specialist: Aug 2019 – Jan 2022
+- Supported monthly, quarterly, and annual close activities, performing variance analysis.
+- Completed AR reconciliations within 5 days post-close.
+- Led UAT efforts for assessment calculation platform, achieved full team adoption within first month.
+
+Accounting and Compliance Specialist: Oct 2017 – Aug 2019
+- Managed internal control documentation, maintaining 25+ procedure documents.
+- Reduced recurring discrepancies 30% through financial audits and targeted reviews.
+
+East Bay Nephrology Medical Group
+Contracted Accounting Consultant: Jul 2016 – Aug 2017
+- Led daily AP/AR accounting operations, processing 300+ monthly transactions with 98% accuracy.
+- Supported system migration and trained 10+ team members with zero disruption post-launch.
+
+Education
+B.A. Economics, University of California, Davis | 2016
+
+Technical Skills
+Advanced Excel (PivotTables, XLOOKUP, Power Query), Limelight, Power BI, ADP, BRiWeb, SharePoint, Sage Intacct
+"""
 
 st.set_page_config(page_title="Steve's Job Finder", page_icon="💼", layout="wide")
 
@@ -43,10 +94,8 @@ def init_db():
     conn.close()
 
 
-@st.cache_data
 def load_resume():
-    doc = Document(RESUME_PATH)
-    return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+    return RESUME_TEXT
 
 
 def search_jobs(title, location, page=1):
