@@ -820,13 +820,22 @@ with tab1:
                 st.write(desc[:600] + ("..." if len(desc) > 600 else ""))
                 st.markdown(f"[View full posting ↗]({url})")
 
+                pasted = st.text_area(
+                    "📋 Paste full job description here for better analysis (optional)",
+                    value="",
+                    height=100,
+                    placeholder="Copy the complete job description from the posting and paste it here...",
+                    key=f"fd{i}",
+                )
+                effective_desc = pasted.strip() if pasted.strip() else desc
+
                 btn1, btn2, btn3 = st.columns(3)
 
                 with btn1:
                     if st.button("🤖 Analyze Match", key=f"a{i}"):
                         with st.spinner("Analyzing with AI..."):
                             try:
-                                st.session_state[f"analysis_{i}"] = analyze_job(title, company, desc, resume_text)
+                                st.session_state[f"analysis_{i}"] = analyze_job(title, company, effective_desc, resume_text)
                             except Exception as e:
                                 st.error(f"Analysis error: {e}")
 
@@ -836,7 +845,7 @@ with tab1:
 
                 with btn3:
                     if st.button("💾 Save Job", key=f"s{i}"):
-                        if save_application(title, company, loc, url, salary, desc):
+                        if save_application(title, company, loc, url, salary, effective_desc):
                             st.success("Saved to applications!")
                         else:
                             st.info("Already saved.")
@@ -869,7 +878,7 @@ with tab1:
                     st.markdown("**Cover Letter:**")
                     placeholder = st.empty()
                     full_text = ""
-                    for chunk in stream_cover_letter(title, company, desc, resume_text):
+                    for chunk in stream_cover_letter(title, company, effective_desc, resume_text):
                         full_text += chunk
                         placeholder.markdown(full_text + "▌")
                     placeholder.markdown(full_text)
