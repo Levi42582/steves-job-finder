@@ -99,26 +99,35 @@ def load_resume():
     return RESUME_TEXT
 
 
-def search_jobs(title, location, page=1, min_salary=None):
-    url = f"https://api.adzuna.com/v1/api/jobs/us/search/{page}"
-    params = {
-        "app_id": ADZUNA_APP_ID,
-        "app_key": ADZUNA_APP_KEY,
-        "what": title,
-        "where": location,
-        "results_per_page": 20,
-        "sort_by": "relevance",
-        "content-type": "application/json",
-    }
-    if min_salary:
-        params["salary_min"] = min_salary
-    try:
-        r = requests.get(url, params=params, timeout=10)
-        r.raise_for_status()
-        return r.json().get("results", [])
-    except Exception as e:
-        st.error(f"Job search failed: {e}")
-        return []
+def search_jobs(title, location, min_salary=None):
+    all_results = []
+    page = 1
+    while True:
+        url = f"https://api.adzuna.com/v1/api/jobs/us/search/{page}"
+        params = {
+            "app_id": ADZUNA_APP_ID,
+            "app_key": ADZUNA_APP_KEY,
+            "what": title,
+            "where": location,
+            "results_per_page": 50,
+            "sort_by": "relevance",
+            "content-type": "application/json",
+        }
+        if min_salary:
+            params["salary_min"] = min_salary
+        try:
+            r = requests.get(url, params=params, timeout=10)
+            r.raise_for_status()
+            data    = r.json()
+            results = data.get("results", [])
+            all_results.extend(results)
+            if len(results) < 50:
+                break
+            page += 1
+        except Exception as e:
+            st.error(f"Job search failed: {e}")
+            break
+    return all_results
 
 
 def analyze_job(title, company, description, resume_text):
@@ -996,6 +1005,7 @@ with tab1:
     if search_btn:
         with st.spinner("Searching..."):
             st.session_state.results = search_jobs(job_title, location, min_salary=120000 if sal_filter else None)
+
         if sal_filter:
             st.caption("ℹ️ Showing only jobs with a listed salary of $120k+. Uncheck the filter to see all results.")
 
