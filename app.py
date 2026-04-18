@@ -4,8 +4,10 @@ import requests
 import sqlite3
 import json
 import os
+import re
 import base64
 from datetime import date
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 try:
     from dotenv import load_dotenv
@@ -99,35 +101,123 @@ def load_resume():
     return RESUME_TEXT
 
 
-def search_jobs(title, location, min_salary=None):
-    all_results = []
-    page = 1
+def _strip_html(text):
+    return re.sub(r"<[^>]+>", " ", text or "").strip()
+
+def _title_relevant(job_title, search_title):
+    words = [w for w in search_title.lower().split() if len(w) > 3]
+    jt = job_title.lower()
+    return any(w in jt for w in words)
+
+def _fetch_adzuna(title, location, min_salary):
+    results, page = [], 1
     while True:
-        url = f"https://api.adzuna.com/v1/api/jobs/us/search/{page}"
         params = {
-            "app_id": ADZUNA_APP_ID,
-            "app_key": ADZUNA_APP_KEY,
-            "what": title,
-            "where": location,
-            "results_per_page": 50,
-            "sort_by": "relevance",
+            "app_id": ADZUNA_APP_ID, "app_key": ADZUNA_APP_KEY,
+            "what": title, "where": location,
+            "results_per_page": 50, "sort_by": "relevance",
             "content-type": "application/json",
         }
         if min_salary:
             params["salary_min"] = min_salary
         try:
-            r = requests.get(url, params=params, timeout=10)
+            r = requests.get(f"https://api.adzuna.com/v1/api/jobs/us/search/{page}", params=params, timeout=12)
             r.raise_for_status()
-            data    = r.json()
-            results = data.get("results", [])
-            all_results.extend(results)
-            if len(results) < 50:
-                break
+            batch = r.json().get("results", [])
+            for j in batch:
+                j["_source"] = "Adzuna"
+            results.extend(batch)
+            if len(batch) < 50: break
             page += 1
-        except Exception as e:
-            st.error(f"Job search failed: {e}")
+        except Exception:
             break
-    return all_results
+    return results
+
+def _fetch_muse(title, location):
+    results, page = [], 1
+    while True:
+        try:
+            r = requests.get(
+                "https://www.themuse.com/api/public/jobs",
+                params={"category": "Accounting & Finance", "level": "Senior Level", "page": page},
+                timeout=10,
+            )
+            r.raise_for_status()
+            data  = r.json()
+            batch = data.get("results", [])
+            for j in batch:
+                jt = j.get("name", "")
+                if not _title_relevant(jt, title):
+                    continue
+                locs = j.get("locations", [])
+                loc_name = locs[0].get("name", "Not listed") if locs else "Not listed"
+                results.append({
+                    "title": jt,
+                    "company": {"display_name": j.get("company", {}).get("name", "")},
+                    "location": {"display_name": loc_name},
+                    "description": _strip_html(j.get("contents", "")),
+                    "redirect_url": j.get("refs", {}).get("landing_page", "#"),
+                    "salary_min": None, "salary_max": None,
+                    "contract_time": "", "contract_type": "",
+                    "_source": "The Muse",
+                })
+            if page >= data.get("page_count", 1): break
+            page += 1
+        except Exception:
+            break
+    return results
+
+def _fetch_remoteok(title):
+    try:
+        tags = "+".join(t for t in title.lower().split() if len(t) > 3)
+        r = requests.get(
+            f"https://remoteok.com/api?tags={tags}",
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=10,
+        )
+        r.raise_for_status()
+        jobs = [j for j in r.json() if isinstance(j, dict) and j.get("position")]
+        out = []
+        for j in jobs:
+            out.append({
+                "title": j.get("position", ""),
+                "company": {"display_name": j.get("company", "")},
+                "location": {"display_name": "Remote"},
+                "description": _strip_html(j.get("description", "")),
+                "redirect_url": j.get("url", "#"),
+                "salary_min": j.get("salary_min"), "salary_max": j.get("salary_max"),
+                "contract_time": "full_time", "contract_type": "",
+                "_source": "RemoteOK",
+            })
+        return out
+    except Exception:
+        return []
+
+def search_jobs(title, location, min_salary=None):
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        futures = {
+            ex.submit(_fetch_adzuna, title, location, min_salary): "adzuna",
+            ex.submit(_fetch_muse, title, location): "muse",
+            ex.submit(_fetch_remoteok, title): "remoteok",
+        }
+        all_raw = []
+        for f in as_completed(futures):
+            try: all_raw.extend(f.result())
+            except Exception: pass
+
+    # deduplicate by (title, company)
+    seen, deduped = set(), []
+    for j in all_raw:
+        key = (j.get("title","").lower().strip(), j.get("company",{}).get("display_name","").lower().strip())
+        if key not in seen:
+            seen.add(key)
+            deduped.append(j)
+
+    if min_salary:
+        deduped = [j for j in deduped if
+                   j.get("salary_min") is None or (j.get("salary_min") or 0) >= min_salary]
+
+    return deduped
 
 
 def analyze_job(title, company, description, resume_text):
@@ -1036,7 +1126,9 @@ with tab1:
             if contract_type == "contract":     contract_tag += "  📄 Contract"
             elif contract_type == "permanent":  contract_tag += "  ✅ Permanent"
 
-            tags = "  |  ".join(t for t in [remote_tag, contract_tag.strip()] if t)
+            source     = job.get("_source", "")
+            source_tag = {"Adzuna": "🔵 Adzuna", "The Muse": "🟣 The Muse", "RemoteOK": "🟢 RemoteOK"}.get(source, "")
+            tags   = "  |  ".join(t for t in [remote_tag, contract_tag.strip(), source_tag] if t)
             header = f"**{title}** — {company} | {loc} | {salary}"
 
             with st.expander(header):
