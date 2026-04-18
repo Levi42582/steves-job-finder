@@ -143,7 +143,12 @@ DESCRIPTION: {description[:3000]}
 }}"""
         }]
     )
-    return json.loads(msg.content[0].text)
+    raw = msg.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    return json.loads(raw.strip())
 
 
 def stream_cover_letter(title, company, description, resume_text):
