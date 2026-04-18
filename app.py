@@ -222,6 +222,8 @@ Rules:
 - Naturally incorporate relevant ATS keywords from the job description
 - Rewrite bullet points to emphasize the most relevant experience
 - Keep the same number of bullet points per role
+- CRITICAL: Keep each bullet point to 1-2 lines max (similar length to the originals) — the resume must fit on ONE page
+- Profile lines should be single sentences, no longer than the originals
 - Return ONLY valid JSON, no other text
 
 Return this exact JSON structure:
