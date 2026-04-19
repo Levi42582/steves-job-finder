@@ -629,6 +629,213 @@ def build_resume_docx_v2(optimized):
     return buf.getvalue()
 
 
+def build_resume_docx_v8(optimized):
+    from docx import Document
+    from docx.shared import Pt, RGBColor, Inches
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+    import io
+
+    FONT = "Calibri"
+    TEAL = RGBColor(0x31, 0x84, 0x9B)
+    DARK = RGBColor(0x33, 0x33, 0x33)
+    GREY = RGBColor(0x7F, 0x7F, 0x7F)
+
+    def _pPr(p): return p._p.get_or_add_pPr()
+
+    def sp(p, before=0, after=0, line=240):
+        pPr = _pPr(p)
+        e = pPr.find(qn("w:spacing"))
+        if e is not None: pPr.remove(e)
+        el = OxmlElement("w:spacing")
+        el.set(qn("w:before"),   str(int(before * 20)))
+        el.set(qn("w:after"),    str(int(after  * 20)))
+        el.set(qn("w:line"),     str(line))
+        el.set(qn("w:lineRule"), "auto")
+        pPr.append(el)
+
+    def bottom_border(p, color="31849B", sz=4):
+        pPr = _pPr(p)
+        pBdr = pPr.find(qn("w:pBdr"))
+        if pBdr is None:
+            pBdr = OxmlElement("w:pBdr"); pPr.append(pBdr)
+        el = OxmlElement("w:bottom")
+        el.set(qn("w:val"), "single"); el.set(qn("w:sz"), str(sz))
+        el.set(qn("w:space"), "2");    el.set(qn("w:color"), color)
+        pBdr.append(el)
+
+    def rtab(p, pos=7.4):
+        pPr = _pPr(p)
+        tabs = pPr.find(qn("w:tabs"))
+        if tabs is None:
+            tabs = OxmlElement("w:tabs"); pPr.append(tabs)
+        t = OxmlElement("w:tab")
+        t.set(qn("w:val"), "right"); t.set(qn("w:pos"), str(int(pos * 1440)))
+        tabs.append(t)
+
+    def ind(p, left=0.25, hang=0.175):
+        pPr = _pPr(p)
+        el = pPr.find(qn("w:ind"))
+        if el is None:
+            el = OxmlElement("w:ind"); pPr.append(el)
+        el.set(qn("w:left"),    str(int(left * 1440)))
+        el.set(qn("w:hanging"), str(int(hang * 1440)))
+
+    def r(p, text, bold=False, italic=False, size=8.5, color=DARK):
+        rn = p.add_run(text)
+        rn.bold = bold; rn.italic = italic
+        rn.font.name = FONT; rn.font.size = Pt(size)
+        rn.font.color.rgb = color
+        return rn
+
+    def no_border_cell(cell):
+        tc = cell._tc
+        tcPr = tc.get_or_add_tcPr()
+        tcBorders = OxmlElement("w:tcBorders")
+        for side in ["top","left","bottom","right","insideH","insideV"]:
+            el = OxmlElement(f"w:{side}")
+            el.set(qn("w:val"), "none"); el.set(qn("w:sz"), "0")
+            el.set(qn("w:space"), "0"); el.set(qn("w:color"), "auto")
+            tcBorders.append(el)
+        tcPr.append(tcBorders)
+        tcMar = OxmlElement("w:tcMar")
+        for side, w in [("top","0"),("left","60"),("bottom","0"),("right","0")]:
+            el = OxmlElement(f"w:{side}")
+            el.set(qn("w:w"), w); el.set(qn("w:type"), "dxa")
+            tcMar.append(el)
+        existing = tcPr.find(qn("w:tcMar"))
+        if existing is not None: tcPr.remove(existing)
+        tcPr.append(tcMar)
+        tcW = OxmlElement("w:tcW")
+        tcW.set(qn("w:w"), "3540"); tcW.set(qn("w:type"), "dxa")
+        tcPr.append(tcW)
+
+    def no_border_table(tbl):
+        tblPr = tbl._tbl.tblPr
+        tblBorders = OxmlElement("w:tblBorders")
+        for side in ["top","left","bottom","right","insideH","insideV"]:
+            el = OxmlElement(f"w:{side}")
+            el.set(qn("w:val"), "none")
+            tblBorders.append(el)
+        tblPr.append(tblBorders)
+        tblW = OxmlElement("w:tblW")
+        tblW.set(qn("w:w"), str(int(7.5 * 1440))); tblW.set(qn("w:type"), "dxa")
+        tblPr.append(tblW)
+
+    def sec(label):
+        p = doc.add_paragraph()
+        sp(p, before=8, after=4)
+        bottom_border(p)
+        r(p, label, bold=True, size=12, color=TEAL)
+
+    def blt(text):
+        p = doc.add_paragraph()
+        sp(p, before=6, after=0)
+        ind(p)
+        r(p, "\u2022  " + text, size=8.5, color=DARK)
+
+    def role_line(title, date):
+        p = doc.add_paragraph()
+        sp(p, before=4, after=0)
+        rtab(p)
+        r(p, title, bold=True, size=8.5, color=DARK)
+        r(p, "\t"); r(p, date, italic=True, size=8.5, color=GREY)
+
+    # ── Document setup ──
+    doc = Document()
+    s = doc.sections[0]
+    s.top_margin = s.bottom_margin = s.left_margin = s.right_margin = Inches(0.5)
+    s.bottom_margin = Inches(0.45)
+    nm = doc.styles["Normal"]
+    nm.font.name = FONT; nm.font.size = Pt(8.5)
+    nm.paragraph_format.space_before = Pt(0)
+    nm.paragraph_format.space_after  = Pt(0)
+
+    # Name
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    sp(p, before=0, after=2)
+    r(p, "Stanislav Spektor", bold=True, size=18, color=DARK)
+
+    # Contact
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    sp(p, before=0, after=2)
+    r(p, "s.spektor93@gmail.com", size=8.5, color=DARK)
+    r(p, "  \u2022  ", size=8.5, color=TEAL)
+    r(p, "925-639-3898", size=8.5, color=DARK)
+    r(p, "  \u2022  ", size=8.5, color=TEAL)
+    r(p, "linkedin.com/in/stanislav-spektor", size=8.5, color=DARK)
+
+    # Profile
+    sec("Profile")
+    for line in optimized.get("profile_lines", []):
+        blt(line)
+
+    # Skills — borderless 3×3 table
+    sec("Skills")
+    abbrev = {
+        "Process Improvement & Documentation": "Process Improvement & Docs.",
+        "Compliance & Regulatory Reporting":   "Compliance & Reg. Reporting",
+    }
+    skills = (optimized.get("skills", []) + [""] * 9)[:9]
+    skills = [abbrev.get(s, s) for s in skills]
+    tbl = doc.add_table(rows=3, cols=3)
+    no_border_table(tbl)
+    for ri in range(3):
+        for ci in range(3):
+            cell = tbl.rows[ri].cells[ci]
+            no_border_cell(cell)
+            p = cell.paragraphs[0]
+            sp(p, before=2, after=0)
+            rn = p.add_run("\u2022  " + skills[ri * 3 + ci])
+            rn.font.name = FONT; rn.font.size = Pt(8.5); rn.font.color.rgb = DARK
+
+    # Professional Experience
+    sec("Professional Experience")
+
+    # WCIRB — ALL CAPS company
+    p = doc.add_paragraph(); sp(p, before=6, after=0)
+    r(p, "WORKERS\u2019 COMPENSATION INSURANCE RATING BUREAU OF CALIFORNIA", bold=True, size=8.5, color=DARK)
+    p = doc.add_paragraph(); sp(p, before=0, after=0)
+    r(p, "Designated Statistical Agent of the California Insurance Commissioner", italic=True, size=8.5, color=DARK)
+
+    role_line("Senior Accountant \u2013 Membership & Assessments", "Jan 2022 \u2013 Feb 2026")
+    for b in optimized.get("wcirb_analyst_bullets", []): blt(b)
+
+    role_line("Member Services Accounting Specialist", "Aug 2019 \u2013 Jan 2022")
+    for b in optimized.get("wcirb_specialist_bullets", []): blt(b)
+
+    role_line("Accounting and Compliance Specialist", "Oct 2017 \u2013 Aug 2019")
+    for b in optimized.get("wcirb_compliance_bullets", []): blt(b)
+
+    # Nephrology — ALL CAPS company
+    p = doc.add_paragraph(); sp(p, before=6, after=0)
+    r(p, "EAST BAY NEPHROLOGY MEDICAL GROUP", bold=True, size=8.5, color=DARK)
+    p = doc.add_paragraph(); sp(p, before=0, after=0)
+    r(p, "Leading Nephrology Practice in Northern California", italic=True, size=8.5, color=DARK)
+    role_line("Contracted Accounting Consultant", "Jul 2016 \u2013 Aug 2017")
+    for b in optimized.get("nephrology_bullets", []): blt(b)
+
+    # Education
+    sec("Education")
+    p = doc.add_paragraph(); sp(p, before=2, after=0)
+    r(p, "B.A. Economics", bold=True, size=8.5, color=DARK)
+    r(p, ",  University of California, Davis  \u2022  2016", size=8.5, color=DARK)
+
+    # Technical Skills
+    sec("Technical Skills")
+    p = doc.add_paragraph(); sp(p, before=2, after=0)
+    r(p, "Software: ", bold=True, size=8.5, color=DARK)
+    r(p, optimized.get("technical_skills", ""), size=8.5, color=DARK)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.getvalue()
+
+
 def build_resume_docx_v3(optimized):
     from docx import Document
     from docx.shared import Pt, RGBColor, Inches
@@ -1297,16 +1504,19 @@ with tab4:
 
     template_choice = st.radio(
         "Resume template",
-        ["Original Format", "Modern Design (v2)", "Modern Design (v3)", "Classic Clean (v4)"],
+        ["Executive Clean (v8)", "Original Format", "Modern Design (v2)", "Modern Design (v3)", "Classic Clean (v4)"],
         horizontal=True,
-        help="v3 uses a left accent bar, flowing skills, and tighter typographic hierarchy — designed for recruiter eyes.",
+        help="Executive Clean (v8) is the recommended format — Calibri, teal headers, borderless skills grid, consistent spacing.",
     )
 
     if st.button("🎯 Optimize Resume for ATS", type="primary", disabled=not opt_desc):
         with st.spinner("AI is optimizing the resume — this takes ~20 seconds..."):
             try:
                 optimized = optimize_resume_for_job(opt_title, opt_desc)
-                if template_choice == "Classic Clean (v4)":
+                if template_choice == "Executive Clean (v8)":
+                    docx_bytes = build_resume_docx_v8(optimized)
+                    suffix = "_v8"
+                elif template_choice == "Classic Clean (v4)":
                     docx_bytes = build_resume_docx_v4(optimized)
                     suffix = "_v4"
                 elif template_choice == "Modern Design (v3)":
