@@ -689,7 +689,7 @@ def build_resume_docx_v8(optimized):
         t.set(qn("w:val"), "right"); t.set(qn("w:pos"), str(int(pos * 1440)))
         tabs.append(t)
 
-    def ind(p, left=0.35, hang=0.28):
+    def ind(p, left=0.22, hang=0.15):
         pPr = _pPr(p)
         el = pPr.find(qn("w:ind"))
         if el is None:
