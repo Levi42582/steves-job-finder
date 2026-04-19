@@ -1478,7 +1478,7 @@ with tab3:
 # ── Tab 4: ATS Resume Optimizer ───────────────────────────────────────────────
 with tab4:
     st.subheader("ATS Resume Optimizer")
-    st.write("Tailors Steve's resume to pass Applicant Tracking Systems — downloads as a formatted PDF.")
+    st.write("Tailors Steve's resume to pass Applicant Tracking Systems.")
 
     source = st.radio("Job source", ["Paste job description", "From saved jobs"], horizontal=True)
 
