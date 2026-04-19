@@ -248,11 +248,11 @@ DESCRIPTION: {description[:3000]}
         }]
     )
     raw = msg.content[0].text.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-    return json.loads(raw.strip())
+    import re as _re
+    match = _re.search(r'\{[\s\S]*\}', raw)
+    if match:
+        raw = match.group(0)
+    return json.loads(raw)
 
 
 def stream_cover_letter(title, company, description, resume_text):
@@ -366,11 +366,11 @@ Return this exact JSON structure:
         }]
     )
     raw = msg.content[0].text.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-    return json.loads(raw.strip())
+    import re as _re
+    match = _re.search(r'\{[\s\S]*\}', raw)
+    if match:
+        raw = match.group(0)
+    return json.loads(raw)
 
 
 def build_resume_docx(optimized):
