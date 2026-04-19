@@ -316,10 +316,10 @@ def optimize_resume_for_job(job_title, job_description):
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
     msg = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=2500,
+        max_tokens=4000,
         messages=[{
             "role": "user",
-            "content": f"""You are an ATS resume optimizer. Optimize Stanislav Spektor's resume for this specific job.
+            "content": f"""You are an expert resume strategist optimizing Stanislav Spektor's resume for maximum ATS coverage and recruiter impact.
 
 ORIGINAL RESUME:
 {RESUME_TEXT}
@@ -327,14 +327,28 @@ ORIGINAL RESUME:
 TARGET JOB: {job_title}
 JOB DESCRIPTION: {job_description[:3000]}
 
-Rules:
-- Keep all facts, companies, dates, and numbers EXACTLY accurate — never fabricate
-- Naturally incorporate relevant ATS keywords from the job description
-- Rewrite bullet points to emphasize the most relevant experience
-- Keep the same number of bullet points per role
-- CRITICAL: The resume must fit on ONE page — keep every bullet under 200 characters
-- Profile lines must be single sentences under 120 characters each
-- Skills must be 1-4 words each (short labels only, e.g. "Cost Accounting", "ERP Systems")
+## STEP 1 — Extract every requirement from the JD
+Identify all must-haves, nice-to-haves, recurring themes, specific tools, and concepts mentioned. Nothing important should go unaddressed in the final resume.
+
+## STEP 2 — Map each requirement to the right section using this hierarchy:
+- SKILLS GRID: explicit keyword labels (1-4 words). This is where ATS scanners look first.
+- BULLETS: prove the skills with achievements, numbers, and context. Keywords appear here as actions, not labels.
+- PROFILE: career narrative — who Steve is and why he's the right fit. Broad strokes only, no repetition of skills grid keywords.
+
+## STEP 3 — Coverage check before finalizing
+Every meaningful JD requirement must appear somewhere. Use the section hierarchy to decide where each one lands. No requirement should appear in more than one section.
+
+## STEP 4 — Software and tools judgment
+- Tools Steve actually uses (Sage Intacct, Excel, etc.) → list explicitly in Technical Skills
+- Tools from the JD that are in the same family as Steve's experience (e.g. NetSuite ≈ Sage Intacct) → include them
+- Tools that are genuinely unrelated → cover the function/concept instead of the tool name
+
+## WRITING RULES:
+- Keep all facts, companies, dates, and numbers EXACTLY accurate
+- Every bullet must read as a natural achievement — no keyword stuffing
+- No word, concept, or keyword should repeat across profile, skills, and bullets
+- CRITICAL: Resume must fit ONE page — every bullet under 200 characters, profile lines under 120 characters
+- Skills must be 1-4 words each
 - Return ONLY valid JSON, no other text
 
 Return this exact JSON structure:
@@ -346,7 +360,7 @@ Return this exact JSON structure:
   "wcirb_compliance_bullets": ["bullet1", "bullet2"],
   "nephrology_bullets": ["bullet1", "bullet2"],
   "technical_skills": "comma-separated technical skills string",
-  "keywords_added": ["kw1", "kw2", "kw3", "kw4", "kw5"]
+  "keywords_added": ["kw1", "kw2", "kw3", "kw4", "kw5", "kw6", "kw7", "kw8", "kw9", "kw10"]
 }}"""
         }]
     )
