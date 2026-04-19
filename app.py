@@ -689,13 +689,19 @@ def build_resume_docx_v8(optimized):
         t.set(qn("w:val"), "right"); t.set(qn("w:pos"), str(int(pos * 1440)))
         tabs.append(t)
 
-    def ind(p, left=0.22, hang=0.19):
+    def ind(p, left=0.2):
         pPr = _pPr(p)
         el = pPr.find(qn("w:ind"))
         if el is None:
             el = OxmlElement("w:ind"); pPr.append(el)
         el.set(qn("w:left"),    str(int(left * 1440)))
-        el.set(qn("w:hanging"), str(int(hang * 1440)))
+        el.set(qn("w:hanging"), str(int(left * 1440)))
+        tabs = pPr.find(qn("w:tabs"))
+        if tabs is None:
+            tabs = OxmlElement("w:tabs"); pPr.append(tabs)
+        t = OxmlElement("w:tab")
+        t.set(qn("w:val"), "left"); t.set(qn("w:pos"), str(int(left * 1440)))
+        tabs.append(t)
 
     def r(p, text, bold=False, italic=False, size=8.5, color=DARK):
         rn = p.add_run(text)
@@ -748,7 +754,7 @@ def build_resume_docx_v8(optimized):
         p = doc.add_paragraph()
         sp(p, before=6, after=0)
         ind(p)
-        r(p, "\u2022  " + text, size=8.5, color=DARK)
+        r(p, "\u2022\t" + text, size=8.5, color=DARK)
 
     def role_line(title, date):
         p = doc.add_paragraph()
