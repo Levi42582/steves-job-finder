@@ -349,6 +349,7 @@ Every meaningful JD requirement must appear somewhere. Use the section hierarchy
 - No word, concept, or keyword should repeat across profile, skills, and bullets
 - CRITICAL: Resume must fit ONE page — every bullet under 200 characters, profile lines under 120 characters
 - Skills must be 1-4 words each
+- technical_skills must fit on ONE line — keep the total string under 110 characters
 - Return ONLY valid JSON, no other text
 
 Return this exact JSON structure:
@@ -688,7 +689,7 @@ def build_resume_docx_v8(optimized):
         t.set(qn("w:val"), "right"); t.set(qn("w:pos"), str(int(pos * 1440)))
         tabs.append(t)
 
-    def ind(p, left=0.25, hang=0.175):
+    def ind(p, left=0.3, hang=0.22):
         pPr = _pPr(p)
         el = pPr.find(qn("w:ind"))
         if el is None:
@@ -837,7 +838,8 @@ def build_resume_docx_v8(optimized):
     sec("Technical Skills")
     p = doc.add_paragraph(); sp(p, before=2, after=0)
     r(p, "Software: ", bold=True, size=8.5, color=DARK)
-    r(p, optimized.get("technical_skills", ""), size=8.5, color=DARK)
+    tech = optimized.get("technical_skills", "").rstrip(".")
+    r(p, tech + ".", size=8.5, color=DARK)
 
     buf = io.BytesIO()
     doc.save(buf)
