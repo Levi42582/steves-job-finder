@@ -738,9 +738,8 @@ def build_resume_docx_v8(optimized):
     def role_line(title, date):
         p = doc.add_paragraph()
         sp(p, before=4, after=0)
-        rtab(p)
-        r(p, title, bold=True, size=8.5, color=DARK)
-        r(p, "\t"); r(p, date, italic=True, size=8.5, color=GREY)
+        r(p, title + ":  ", bold=True, size=8.5, color=DARK)
+        r(p, date, bold=True, italic=True, size=8.5, color=DARK)
 
     # ── Document setup ──
     doc = Document()
@@ -762,11 +761,7 @@ def build_resume_docx_v8(optimized):
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     sp(p, before=0, after=2)
-    r(p, "s.spektor93@gmail.com", size=8.5, color=DARK)
-    r(p, "  \u2022  ", size=8.5, color=TEAL)
-    r(p, "925-639-3898", size=8.5, color=DARK)
-    r(p, "  \u2022  ", size=8.5, color=TEAL)
-    r(p, "linkedin.com/in/stanislav-spektor", size=8.5, color=DARK)
+    r(p, "s.spektor93@gmail.com  |  925-639-3898  |  linkedin.com/in/stanislav-spektor", size=8.5, color=DARK)
 
     # Profile
     sec("Profile")
@@ -797,7 +792,7 @@ def build_resume_docx_v8(optimized):
 
     # WCIRB — ALL CAPS company
     p = doc.add_paragraph(); sp(p, before=6, after=0)
-    r(p, "WORKERS\u2019 COMPENSATION INSURANCE RATING BUREAU OF CALIFORNIA", bold=True, size=8.5, color=DARK)
+    r(p, "Workers\u2019 Compensation Insurance Rating Bureau of California", bold=True, size=8.5, color=DARK)
     p = doc.add_paragraph(); sp(p, before=0, after=0)
     r(p, "Designated Statistical Agent of the California Insurance Commissioner", italic=True, size=8.5, color=DARK)
 
