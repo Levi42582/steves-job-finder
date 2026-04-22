@@ -93,6 +93,13 @@ def init_db():
         saved_date TEXT,
         job_description TEXT
     )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS ats_keyword_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        job_title TEXT,
+        keywords TEXT,
+        template TEXT,
+        logged_date TEXT
+    )""")
     conn.commit()
     conn.close()
 
@@ -1299,7 +1306,7 @@ if os.path.exists(_img_path):
 st.title("💼 Steve's Job Finder")
 st.caption("AI-powered job search for Stanislav Spektor · Senior Accountant")
 
-tab1, tab2, tab3, tab4 = st.tabs(["🔍 Search Jobs", "📋 My Applications", "💡 Resume Tips", "📄 ATS Resume"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["🔍 Search Jobs", "📋 My Applications", "💡 Resume Tips", "📄 ATS Resume", "📊 Keyword Insights"])
 
 
 # ── Tab 1: Search ──────────────────────────────────────────────────────────────
@@ -1549,6 +1556,17 @@ with tab4:
                 st.session_state["ats_keywords"]   = optimized.get("keywords_added", [])
                 st.session_state["ats_docx_bytes"] = docx_bytes
                 st.session_state["ats_fname"]      = fname
+                try:
+                    _kw_conn = sqlite3.connect(DB_PATH)
+                    _kw_c = _kw_conn.cursor()
+                    _kw_c.execute(
+                        "INSERT INTO ats_keyword_log (job_title, keywords, template, logged_date) VALUES (?, ?, ?, ?)",
+                        (opt_title, ", ".join(optimized.get("keywords_added", [])), template_choice, date.today().strftime("%Y-%m-%d"))
+                    )
+                    _kw_conn.commit()
+                    _kw_conn.close()
+                except Exception as _kw_err:
+                    st.warning(f"Keyword log failed: {_kw_err}")
             except Exception as e:
                 st.error(f"Something went wrong: {e}")
 
@@ -1562,3 +1580,51 @@ with tab4:
             file_name=st.session_state.get("ats_fname", "resume.docx"),
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         )
+
+
+# ── Tab 5: Keyword Insights ────────────────────────────────────────────────────
+with tab5:
+    st.subheader("Keyword Insights")
+    st.write("Every keyword the ATS optimizer has injected — ranked by how often employers ask for it.")
+
+    conn = sqlite3.connect(DB_PATH)
+    rows = conn.execute(
+        "SELECT job_title, keywords, logged_date FROM ats_keyword_log ORDER BY id DESC"
+    ).fetchall()
+    conn.close()
+
+    if not rows:
+        st.info("No keyword data yet. Run the ATS optimizer on a job and the keywords will appear here.")
+    else:
+        from collections import Counter
+
+        freq: Counter = Counter()
+        kw_roles: dict = {}
+
+        for job_title, keywords_str, logged_date in rows:
+            if not keywords_str:
+                continue
+            for kw in [k.strip() for k in keywords_str.split(",") if k.strip()]:
+                freq[kw] += 1
+                kw_roles.setdefault(kw, set()).add(job_title or "Unknown")
+
+        st.markdown("### Most Requested Keywords")
+        table_data = [
+            {
+                "Keyword": kw,
+                "Times Requested": count,
+                "Roles": ", ".join(sorted(kw_roles[kw])),
+            }
+            for kw, count in freq.most_common()
+        ]
+        st.dataframe(table_data, use_container_width=True, hide_index=True)
+
+        st.divider()
+        st.markdown("### Optimization History")
+        for job_title, keywords_str, logged_date in rows:
+            with st.expander(f"**{job_title or 'Untitled'}** — {logged_date}"):
+                if keywords_str:
+                    for kw in [k.strip() for k in keywords_str.split(",") if k.strip()]:
+                        st.markdown(f"- {kw}")
+                else:
+                    st.write("No keywords recorded.")
