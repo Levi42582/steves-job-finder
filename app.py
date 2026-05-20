@@ -348,13 +348,12 @@ def optimize_resume_for_job(job_title, job_description):
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
     msg = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=6000,
+        max_tokens=8000,
         temperature=0.3,
+        system="You are a resume optimization engine. Output ONLY valid JSON matching the exact structure specified. No analysis, no explanation, no preamble — JSON only.",
         messages=[{
             "role": "user",
-            "content": f"""You are Stanislav Spektor's personal resume strategist. Your job is to optimize
-his resume for maximum ATS coverage and recruiter impact for the specific role
-below — without ever compromising the quality of the language.
+            "content": f"""Optimize Stanislav Spektor's resume for the job below. Return ONLY the JSON object — no analysis, no explanation, nothing before or after the JSON.
 
 ## BASELINE RESUME (optimize FROM this — never produce output below this quality)
 
@@ -451,15 +450,6 @@ CHARACTER LIMITS (hard):
 OUT OF SCOPE:
 - If a JD requirement has no connection to Steve's actual experience, do not
   invent it — address the closest adjacent skill Steve genuinely has, or omit
-
-## SELF-CRITIQUE — run before returning, fix anything that fails
-
-1. Do any two bullets start with the same verb? Fix.
-2. Does any metric appear more than once? Remove the duplicate.
-3. Does any sub restate its main in different words? Rewrite to add new info.
-4. Does any keyword feel bolted on rather than earned by the content? Reposition or remove.
-5. Does any profile bullet echo language from the skills grid? Make it identity-based.
-6. Does any string exceed its character limit? Trim.
 
 ## OUTPUT — valid JSON only, nothing outside it
 
