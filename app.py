@@ -483,7 +483,7 @@ OUT OF SCOPE:
     )
     raw = msg.content[0].text.strip()
     import re as _re
-    m = _re.search(r'\{{[\s\S]*\}}', raw)
+    m = _re.search(r'\{[\s\S]*\}', raw)
     if m:
         raw = m.group(0)
     result = json.loads(raw)
