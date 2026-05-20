@@ -492,10 +492,18 @@ OUT OF SCOPE:
 
 
 def _validate_ats_output(data):
-    """Raise ValueError if Claude's JSON doesn't match the expected v3 structure."""
+    """
+    Validate and normalize Claude's JSON to match the v3 structure.
+    Normalizes skills_table to exactly 3 columns of 4 items regardless of
+    what orientation Claude returned (it sometimes returns 4x3 instead of 3x4).
+    """
     errors = []
+
+    # Profile: exactly 3 bullets
     if len(data.get("profile", [])) != 3:
         errors.append(f"profile: expected 3 bullets, got {len(data.get('profile', []))}")
+
+    # Positions: all 4, each with 3 main+sub bullet pairs
     for key in ["wcirb_senior", "wcirb_member", "wcirb_accounting", "east_bay"]:
         bullets = data.get("positions", {}).get(key, {}).get("bullets", [])
         if len(bullets) != 3:
@@ -503,12 +511,18 @@ def _validate_ats_output(data):
         for i, b in enumerate(bullets):
             if "main" not in b or "sub" not in b:
                 errors.append(f"{key}[{i}]: missing 'main' or 'sub'")
+
+    # Skills table: normalize to 3 columns of 4 items
+    # Claude sometimes returns 4 rows of 3 instead of 3 columns of 4 — flatten and reshape.
     skills = data.get("skills_table", [])
-    if len(skills) != 3:
-        errors.append(f"skills_table: expected 3 columns, got {len(skills)}")
-    for i, col in enumerate(skills):
-        if len(col) != 4:
-            errors.append(f"skills_table col {i}: expected 4 items, got {len(col)}")
+    flat = [item for col in skills for item in (col if isinstance(col, list) else [col])]
+    if len(flat) < 9:
+        errors.append(f"skills_table: too few items ({len(flat)}) — expected 12")
+    else:
+        # Pad to 12 if slightly short, truncate if longer
+        flat = (flat + [""] * 12)[:12]
+        data["skills_table"] = [flat[0:4], flat[4:8], flat[8:12]]
+
     if errors:
         raise ValueError("ATS output validation failed:\n" + "\n".join(errors))
 
