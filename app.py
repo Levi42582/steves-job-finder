@@ -486,9 +486,23 @@ OUT OF SCOPE:
     m = _re.search(r'\{[\s\S]*\}', raw)
     if m:
         raw = m.group(0)
+
+    # Clean common Claude JSON issues before parsing
+    raw = _clean_json(raw)
+
     result = json.loads(raw)
     _validate_ats_output(result)
     return result
+
+
+def _clean_json(s):
+    """Fix common Claude JSON formatting issues before parsing."""
+    # Remove trailing commas before ] or }
+    s = _re.sub(r',\s*([}\]])', r'\1', s)
+    # Replace literal newlines inside strings with spaces
+    # (handles cases where Claude wraps a string value across lines)
+    s = _re.sub(r'(?<=["\w])\n(?=["\w])', ' ', s)
+    return s
 
 
 def _validate_ats_output(data):
