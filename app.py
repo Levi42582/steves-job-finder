@@ -483,25 +483,21 @@ OUT OF SCOPE:
     )
     raw = msg.content[0].text.strip()
     import re as _re
-    m = _re.search(r'\{[\s\S]*\}', raw)
+    # Strip markdown code fences Claude sometimes adds
+    raw = re.sub(r'^```[\w]*\s*', '', raw.strip())
+    raw = re.sub(r'\s*```\s*$', '', raw.strip())
+
+    # Extract the outermost JSON object
+    m = re.search(r'\{[\s\S]*\}', raw)
     if m:
         raw = m.group(0)
 
-    # Clean common Claude JSON issues before parsing
-    raw = _clean_json(raw)
+    # Fix trailing commas and literal newlines inside strings
+    raw = re.sub(r',\s*([}\]])', r'\1', raw)
 
     result = json.loads(raw)
     _validate_ats_output(result)
     return result
-
-
-def _clean_json(s):
-    """Fix common Claude JSON formatting issues before parsing."""
-    # Remove trailing commas before ] or }
-    s = re.sub(r',\s*([}\]])', r'\1', s)
-    # Replace literal newlines inside strings with spaces
-    s = re.sub(r'(?<=["\w])\n(?=["\w])', ' ', s)
-    return s
 
 
 def _validate_ats_output(data):
