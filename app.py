@@ -482,20 +482,22 @@ OUT OF SCOPE:
         }]
     )
     raw = msg.content[0].text.strip()
-    import re as _re
-    # Strip markdown code fences Claude sometimes adds
-    raw = re.sub(r'^```[\w]*\s*', '', raw.strip())
-    raw = re.sub(r'\s*```\s*$', '', raw.strip())
 
-    # Extract the outermost JSON object
-    m = re.search(r'\{[\s\S]*\}', raw)
-    if m:
-        raw = m.group(0)
-
-    # Fix trailing commas and literal newlines inside strings
+    # Remove trailing commas before ] or } (common Claude formatting issue)
     raw = re.sub(r',\s*([}\]])', r'\1', raw)
 
-    result = json.loads(raw)
+    # Find the first { and parse from there — handles any amount of text
+    # before/after the JSON (code fences, explanations, etc.)
+    start = raw.find('{')
+    if start == -1:
+        raise ValueError(f"Claude returned no JSON object. Response: {raw[:300]!r}")
+
+    try:
+        result, _ = json.JSONDecoder().raw_decode(raw, start)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"JSON parse error at char {e.pos}: {e.msg}. "
+                         f"Near: {raw[max(0,start+e.pos-40):start+e.pos+40]!r}")
+
     _validate_ats_output(result)
     return result
 
