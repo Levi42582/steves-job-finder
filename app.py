@@ -498,10 +498,9 @@ OUT OF SCOPE:
 def _clean_json(s):
     """Fix common Claude JSON formatting issues before parsing."""
     # Remove trailing commas before ] or }
-    s = _re.sub(r',\s*([}\]])', r'\1', s)
+    s = re.sub(r',\s*([}\]])', r'\1', s)
     # Replace literal newlines inside strings with spaces
-    # (handles cases where Claude wraps a string value across lines)
-    s = _re.sub(r'(?<=["\w])\n(?=["\w])', ' ', s)
+    s = re.sub(r'(?<=["\w])\n(?=["\w])', ' ', s)
     return s
 
 
