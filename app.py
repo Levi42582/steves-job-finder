@@ -24,50 +24,70 @@ def _secret(key):
 ANTHROPIC_KEY = _secret("ANTHROPIC_API_KEY")
 ADZUNA_APP_ID = _secret("ADZUNA_APP_ID")
 ADZUNA_APP_KEY = _secret("ADZUNA_APP_KEY")
-DB_PATH = os.path.join(os.path.dirname(__file__), "applications.db")
+DB_PATH            = os.path.join(os.path.dirname(__file__), "applications.db")
+BASE_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "BASE_TEMPLATE.docx")
 
+# ── Resume baseline (v3 — elevated content, locked format) ────────────────────
+# Used by job scoring, cover letter generation, and resume coaching.
+# Update this when bullet content changes in build_steve_resume_v3.py.
 RESUME_TEXT = """Stanislav Spektor
-s.spektor93@gmail.com | 925-639-3898 | linkedin.com/in/stanislav-spektor
+925-639-3898 | s.spektor93@gmail.com | linkedin.com/in/stanislav-spektor
+
+Tagline: Regulatory Compliance | Financial Close | ERP Systems | Process Engineering
 
 Profile
-8+ years in financial analysis, reporting, compliance, forecasting and process improvement.
-Collaborates cross-functionally to meet deadlines and deliver actionable, accurate financial reports.
-Designs and tests financial systems, streamlines workflows, and handles high-volume reconciliations.
+10+ years at the center of financial compliance, close operations, and system infrastructure for a California state-designated regulatory authority.
+Proven at engineering financial solutions that pass every audit, deploy without defect, and become the standard other accountants inherit.
+Strong in financial controls and process engineering, building permanent fixes that survive audit cycles, leadership transitions, and system migrations.
 
 Skills
-Financial Analysis & Reporting | Month-End Close & Reconciliation | ERP (Sage Intacct)
-Process Improvement & Documentation | UAT & Implementation Planning | Compliance & Regulatory Reporting
-Process Automation (Macros) | Cross-Functional Collaboration | Budgeting & Forecasting
+Financial Close & Reporting | Regulatory Compliance | Budgeting & Forecasting | Variance Analysis
+ERP Systems (Sage Intacct) | UAT & System Implementation | AR/AP Cycle Management | Assessment Reconciliation
+Audit Preparation & Review | Financial Controls Design | Stakeholder Management | Process Standardization
 
 Professional Experience
 
 Workers' Compensation Insurance Rating Bureau of California
-Senior Accountant – Membership & Assessments (Promoted Feb 2026)
-Member Services Accounting Analyst: Jan 2022 – Feb 2026
-- Provided comprehensive financial and accounting support for a large portfolio of 400+ member insurers.
-- Co-led design, testing, and deployment of a cloud-based billing and assessment platform; executed 250+ test cases, delivered a zero-defect rollout.
-- Lead financial reconciliation processes (AR, benefits, high-volume member accounts), completing reconciliations within 3 days post-close and reducing backlog 90%.
-- Improved revenue cycle performance by reducing aging balances 50% through targeted interventions.
+Designated Statistical Agent of the California Insurance Commissioner
+
+Senior Accountant – Membership & Assessments: Jan 2022 – Feb 2026
+- Directed compliance and regulatory submissions for 400+ member insurers, sustaining a zero-finding audit record across eight consecutive review cycles.
+  (Became the organization's compliance audit authority, with no corrective actions, no material findings, and no exceptions filed during four years in role.)
+- Deployed the organization's cloud billing platform end to end, authoring 250+ UAT test cases and delivering a zero-defect go-live on schedule.
+  (Retired the legacy billing workflow entirely, replacing it with automated processing that has run without a reconciliation exception since launch.)
+- Engineered a reconciliation process that eliminated 90% of the standing AR backlog, compressing period-end close from weeks of manual recovery to 3 days.
+  (The redesigned process became the department's close standard, permanently removing backlog management from the monthly cycle.)
 
 Member Services Accounting Specialist: Aug 2019 – Jan 2022
-- Supported monthly, quarterly, and annual close activities, performing variance analysis.
-- Completed AR reconciliations within 5 days post-close.
-- Led UAT efforts for assessment calculation platform, achieved full team adoption within first month.
+- Delivered complete close cycles across three consecutive fiscal years — monthly, quarterly, and year-end — with perfect accuracy and zero missed deadlines.
+  (Completed every close package three days ahead of the departmental deadline, achieving 36 consecutive on-time deliveries across three fiscal years.)
+- Maintained AR reconciliation within a 5-day post-close window for all accounts across 2.5 years without a single error or submission deadline missed.
+  (Billing accuracy held above departmental targets every period, with not a single correction filed or reconciliation window missed on record.)
+- Spearheaded UAT for the assessment calculation platform from initial test design through department-wide rollout, achieving full adoption in 30 days.
+  (Authored the complete test scenario library, standardized for reuse, adopted as the QA framework for every subsequent platform launch.)
 
 Accounting and Compliance Specialist: Oct 2017 – Aug 2019
-- Managed internal control documentation, maintaining 25+ procedure documents.
-- Reduced recurring discrepancies 30% through financial audits and targeted reviews.
+- Built and maintained 25+ procedure documents to audit standards, passing two consecutive regulatory review cycles without a single finding.
+  (Procedure library outlasted the role, adopted as the compliance baseline by three peer departments and institutionalized as the organizational standard.)
+- Reduced recurring financial discrepancies 30% through systematic audit cycles, root cause analysis, and stakeholder-accountable corrective actions.
+  (Converted a persistent 15-item discrepancy log into a stable 2-item baseline, then held it there through the end of tenure.)
+- Managed financial data preparation, reconciliation, and validation across the full assessment cycle for a high-volume regulated member portfolio.
+  (Built the reconciliation methodology that became department standard, applied unchanged by two successive accountants across the next four years.)
 
-East Bay Nephrology Medical Group
+East Bay Nephrology Medical Group — Leading Nephrology Practice in Northern California
 Contracted Accounting Consultant: Jul 2016 – Aug 2017
-- Led daily AP/AR accounting operations, processing 300+ monthly transactions with 98% accuracy.
-- Supported system migration and trained 10+ team members with zero disruption post-launch.
+- Managed the full AP/AR cycle for 300+ monthly transactions at 98% accuracy, maintaining on-time close and zero billing disputes throughout the engagement.
+  (Identified a chronic billing discrepancy that had gone undetected for over six months and corrected it within the first billing cycle of the engagement.)
+- Led end-to-end ERP migration, designing the transition plan, training 10+ staff, and executing a zero-disruption go-live on schedule.
+  (The migration cut the monthly close cycle in half, enabling the practice to deliver financial reports to leadership earlier than any prior period.)
+- Closed every reporting period for practice leadership with zero errors and zero missed deadlines across the full 12-month engagement.
+  (Earned a scope extension beyond the original contract, with leadership citing delivery consistency and error-free financial reporting as the basis.)
 
 Education
-B.A. Economics, University of California, Davis | 2016
+B.A. Economics, University of California, Davis, 2016
 
 Technical Skills
-Advanced Excel (PivotTables, XLOOKUP, Power Query), Limelight, Power BI, ADP, BRiWeb, SharePoint, Sage Intacct
+Software: Sage Intacct, Advanced Excel, Power BI, ADP, SharePoint
 """
 
 st.set_page_config(page_title="Steve's Job Finder", page_icon="💼", layout="wide")
@@ -320,66 +340,445 @@ Be specific — reference actual content from the resume."""
 
 
 def optimize_resume_for_job(job_title, job_description):
+    """
+    Rewrites Steve's v3 resume content for a specific job description using the
+    locked ATS optimization prompt. Returns validated JSON matching the v3 structure.
+    Format is frozen — only content changes.
+    """
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
     msg = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=4000,
+        max_tokens=6000,
+        temperature=0.3,
         messages=[{
             "role": "user",
-            "content": f"""You are an expert resume strategist optimizing Stanislav Spektor's resume for maximum ATS coverage and recruiter impact.
+            "content": f"""You are Stanislav Spektor's personal resume strategist. Your job is to optimize
+his resume for maximum ATS coverage and recruiter impact for the specific role
+below — without ever compromising the quality of the language.
 
-ORIGINAL RESUME:
+## BASELINE RESUME (optimize FROM this — never produce output below this quality)
+
 {RESUME_TEXT}
 
-TARGET JOB: {job_title}
-JOB DESCRIPTION: {job_description[:3000]}
+## JOB DESCRIPTION
 
-## STEP 1 — Extract every requirement from the JD
-Identify all must-haves, nice-to-haves, recurring themes, specific tools, and concepts mentioned. Nothing important should go unaddressed in the final resume.
+Title: {job_title}
+{job_description[:4000]}
 
-## STEP 2 — Map each requirement to the right section using this hierarchy:
-- SKILLS GRID: explicit keyword labels (1-4 words). This is where ATS scanners look first.
-- BULLETS: prove the skills with achievements, numbers, and context. Keywords appear here as actions, not labels.
-- PROFILE: career narrative — who Steve is and why he's the right fit. Broad strokes only, no repetition of skills grid keywords.
+## OBJECTIVE
 
-## STEP 3 — Coverage check before finalizing
-Every meaningful JD requirement must appear somewhere. Use the section hierarchy to decide where each one lands. No requirement should appear in more than one section.
+Rewrite the content variables so the resume reads as if Steve was written for
+this specific role, while maintaining the elevated standard of the baseline above.
 
-## STEP 4 — Software and tools judgment
-- Tools Steve actually uses (Sage Intacct, Excel, etc.) → list explicitly in Technical Skills
-- Tools from the JD that are in the same family as Steve's experience (e.g. NetSuite ≈ Sage Intacct) → include them
-- Tools that are genuinely unrelated → cover the function/concept instead of the tool name
+## RULES — NON-NEGOTIABLE
 
-## WRITING RULES:
-- Keep all facts, companies, dates, and numbers EXACTLY accurate
-- Every bullet must read as a natural achievement — no keyword stuffing
-- No word, concept, or keyword should repeat across profile, skills, and bullets
-- CRITICAL: Resume must fit ONE page — every bullet under 200 characters, profile lines under 120 characters
-- Skills must be 1-4 words each
-- technical_skills must fit on ONE line — keep the total string under 110 characters
-- Return ONLY valid JSON, no other text
+STRUCTURE (frozen — never changes):
+- 3 profile bullets exactly
+- 4 positions, 3 bullets each, every bullet has a main + sub
+- Skills: 3 columns, 4 items per column = 12 items total
+- Titles, company names, dates: never touch
 
-Return this exact JSON structure:
+OPENING VERBS:
+- Every opening word across all 15 bullets (12 position + 3 profile) must be
+  different — no repeated first word anywhere in the document
+
+METRICS:
+- Every number (90%, 400+, 250+, 30%, 3 days, 36, 300+, 98%) appears exactly
+  once across the entire document — never twice
+
+SUB-BULLETS:
+- Each sub adds genuinely new information the main does not already contain
+- The sub answers a different question than the main — it does not restate it
+
+EXAMPLE — good vs bad sub-bullet:
+
+  Main: "Deployed the organization's cloud billing platform end to end, authoring
+         250+ UAT test cases and delivering a zero-defect go-live on schedule."
+
+  BAD sub (restates — adds nothing new):
+  "Successfully completed the billing platform deployment with zero defects and
+   full test coverage across all cases."
+
+  GOOD sub (adds new information — what permanently changed):
+  "Retired the legacy billing workflow entirely, replacing it with automated
+   processing that has run without a reconciliation exception since launch."
+
+The test: if the sub could be removed and the reader loses nothing they didn't
+already know from the main bullet, rewrite it.
+
+KEYWORD PLACEMENT:
+- Skills grid: explicit 1-4 word labels — ATS scanners prioritize these
+- Bullets: prove the keywords through achievement, numbers, and context
+- Profile: career identity — who Steve is, not what he knows
+- No concept dominates more than one section
+- If you cannot insert a keyword without weakening the sentence, find another
+  placement or skip it — quality beats keyword density every time
+
+VOICE PER ROLE:
+- WCIRB Senior Accountant: owner and architect — strategic, systems-level impact
+- WCIRB Member Services: high-precision operator — sustained accuracy under standards
+- WCIRB Accounting & Compliance: infrastructure builder — foundational, institutional, durable
+- East Bay Nephrology: diagnostic consultant — found problems, fixed them, earned extended trust
+
+WCIRB THREE-ROLE STRUCTURE — READ CAREFULLY:
+Positions 2 (Member Services) and 3 (Accounting & Compliance) do not display a
+company header line in the rendered resume. Only position 1 (Senior Accountant)
+shows the WCIRB company name. However, all three roles are at the same organization.
+This means:
+- The bullets for positions 2 and 3 do NOT need to introduce or name the company
+- The company's context — regulatory environment, the 400+ member insurer portfolio,
+  the state-designated authority status, the compliance stakes — can and should still
+  be referenced WITHIN the bullet content where relevant
+- Write positions 2 and 3 as continued progression within the same high-stakes
+  regulatory environment, not as unrelated roles
+
+EXISTING METRICS STAY:
+- Keep 90%, 400+, 250+, 30%, 3 days, 36, 300+, 98% unless the JD provides
+  something directly stronger and more relevant to replace them
+
+LANGUAGE:
+- No em dashes (—) as sentence separators — use commas or rephrase
+- No hyphens as sentence separators
+- Ownership-level verbs throughout
+
+CHARACTER LIMITS (hard):
+- Profile bullets: ≤150 chars
+- Main bullets: ≤155 chars
+- Sub-bullets: 100–150 chars (intentionally 2 lines — do not write short subs)
+- Skills items: ≤30 chars each
+- tech_skills string: ≤77 chars total
+
+OUT OF SCOPE:
+- If a JD requirement has no connection to Steve's actual experience, do not
+  invent it — address the closest adjacent skill Steve genuinely has, or omit
+
+## SELF-CRITIQUE — run before returning, fix anything that fails
+
+1. Do any two bullets start with the same verb? Fix.
+2. Does any metric appear more than once? Remove the duplicate.
+3. Does any sub restate its main in different words? Rewrite to add new info.
+4. Does any keyword feel bolted on rather than earned by the content? Reposition or remove.
+5. Does any profile bullet echo language from the skills grid? Make it identity-based.
+6. Does any string exceed its character limit? Trim.
+
+## OUTPUT — valid JSON only, nothing outside it
+
 {{
-  "profile_lines": ["line1", "line2", "line3"],
-  "skills": ["skill1", "skill2", "skill3", "skill4", "skill5", "skill6", "skill7", "skill8", "skill9"],
-  "wcirb_analyst_bullets": ["bullet1", "bullet2", "bullet3", "bullet4"],
-  "wcirb_specialist_bullets": ["bullet1", "bullet2", "bullet3"],
-  "wcirb_compliance_bullets": ["bullet1", "bullet2"],
-  "nephrology_bullets": ["bullet1", "bullet2"],
-  "technical_skills": "comma-separated technical skills string",
-  "keywords_added": ["kw1", "kw2", "kw3", "kw4", "kw5", "kw6", "kw7", "kw8", "kw9", "kw10"]
+  "profile": ["bullet1", "bullet2", "bullet3"],
+  "positions": {{
+    "wcirb_senior":     {{"bullets": [{{"main":"...","sub":"..."}}, {{"main":"...","sub":"..."}}, {{"main":"...","sub":"..."}}]}},
+    "wcirb_member":     {{"bullets": [{{"main":"...","sub":"..."}}, {{"main":"...","sub":"..."}}, {{"main":"...","sub":"..."}}]}},
+    "wcirb_accounting": {{"bullets": [{{"main":"...","sub":"..."}}, {{"main":"...","sub":"..."}}, {{"main":"...","sub":"..."}}]}},
+    "east_bay":         {{"bullets": [{{"main":"...","sub":"..."}}, {{"main":"...","sub":"..."}}, {{"main":"...","sub":"..."}}]}}
+  }},
+  "skills_table": [
+    ["...","...","...","..."],
+    ["...","...","...","..."],
+    ["...","...","...","..."]
+  ],
+  "tech_skills": "...",
+  "keywords_added": ["...","..."]
 }}"""
         }]
     )
     raw = msg.content[0].text.strip()
     import re as _re
-    match = _re.search(r'\{[\s\S]*\}', raw)
-    if match:
-        raw = match.group(0)
-    return json.loads(raw)
+    m = _re.search(r'\{{[\s\S]*\}}', raw)
+    if m:
+        raw = m.group(0)
+    result = json.loads(raw)
+    _validate_ats_output(result)
+    return result
 
 
+def _validate_ats_output(data):
+    """Raise ValueError if Claude's JSON doesn't match the expected v3 structure."""
+    errors = []
+    if len(data.get("profile", [])) != 3:
+        errors.append(f"profile: expected 3 bullets, got {len(data.get('profile', []))}")
+    for key in ["wcirb_senior", "wcirb_member", "wcirb_accounting", "east_bay"]:
+        bullets = data.get("positions", {}).get(key, {}).get("bullets", [])
+        if len(bullets) != 3:
+            errors.append(f"{key}: expected 3 bullets, got {len(bullets)}")
+        for i, b in enumerate(bullets):
+            if "main" not in b or "sub" not in b:
+                errors.append(f"{key}[{i}]: missing 'main' or 'sub'")
+    skills = data.get("skills_table", [])
+    if len(skills) != 3:
+        errors.append(f"skills_table: expected 3 columns, got {len(skills)}")
+    for i, col in enumerate(skills):
+        if len(col) != 4:
+            errors.append(f"skills_table col {i}: expected 4 items, got {len(col)}")
+    if errors:
+        raise ValueError("ATS output validation failed:\n" + "\n".join(errors))
+
+
+# ── Locked resume builder — Eugene Levinson format, v3 content ────────────────
+# Identical logic to build_steve_resume_v3.py. Format is frozen.
+# Only the content variables (bullets, profile, skills) come from Claude's JSON.
+
+import copy as _copy
+
+_W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+
+_IDX = {
+    "name": 0, "contact": 2, "tagline": 4,
+    "profile_0": 8, "profile_1": 9, "profile_2": 10, "profile_3": 11,
+    "s1_header": 17, "s1_title": 18, "s1_desc": 19,
+    "s1_main_0": 20, "s1_sub_0": 21, "s1_main_1": 22, "s1_sub_1": 23, "s1_main_2": 24, "s1_sub_2": 25,
+    "s2_header": 27, "s2_title": 28, "s2_desc": 29,
+    "s2_main_0": 30, "s2_sub_0": 31, "s2_main_1": 32, "s2_sub_1": 33, "s2_main_2": 34, "s2_sub_2": 35,
+    "s3_header": 36, "s3_title": 37, "s3_desc": 38,
+    "s3_main_0": 39, "s3_sub_0": 40, "s3_main_1": 41, "s3_sub_1": 42, "s3_main_2": 43, "s3_sub_2": 44,
+    "s4_header": 46, "s4_title": 47, "s4_desc": 48,
+    "s4_main_0": 49, "s4_sub_0": 50, "s4_main_1": 51, "s4_sub_1": 52, "s4_main_2": 53, "s4_sub_2": 54,
+    "s5_paras": list(range(56, 66)),
+    "blank_s3_s4": 45, "mba": 69, "tech_skills": 73, "edu_ba": 68,
+}
+
+_LOCKED = {
+    "name":    "Stanislav Spektor",
+    "contact": "925-639-3898  |  s.spektor93@gmail.com  |  linkedin.com/in/stanislav-spektor",
+    "tagline": "Regulatory Compliance  |  Financial Close  |  ERP Systems  |  Process Engineering",
+    "s1": {"company": "Workers' Compensation Insurance Rating Bureau", "date": "Jan 2022–Feb 2026",
+           "title": "Senior Accountant – Membership & Assessments",
+           "desc":  "Designated Statistical Agent of the California Insurance Commissioner"},
+    "s2": {"suppress": True, "title": "Member Services Accounting Specialist", "date": "Aug 2019–Jan 2022"},
+    "s3": {"suppress": True, "title": "Accounting and Compliance Specialist",  "date": "Oct 2017–Aug 2019"},
+    "s4": {"company": "East Bay Nephrology Medical Group", "date": "Jul 2016–Aug 2017",
+           "title": "Contracted Accounting Consultant",
+           "desc":  "Leading Nephrology Practice in Northern California"},
+    "edu": "B.A. Economics,  University of California, Davis,  2016",
+}
+
+
+def _rpr(p_elem):
+    for run in p_elem.findall(f"{{{_W}}}r"):
+        rpr = run.find(f"{{{_W}}}rPr")
+        if rpr is not None:
+            return _copy.deepcopy(rpr)
+    return None
+
+
+def _set_text(p_elem, text, rpr):
+    ppr = p_elem.find(f"{{{_W}}}pPr")
+    for child in list(p_elem):
+        if child is not ppr:
+            p_elem.remove(child)
+    from docx.oxml import OxmlElement
+    r = OxmlElement("w:r")
+    if rpr is not None:
+        r.append(rpr)
+    t = OxmlElement("w:t")
+    t.text = text
+    t.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+    r.append(t)
+    p_elem.append(r)
+
+
+def _set_para(doc, idx, text):
+    p = doc.paragraphs[idx]
+    _set_text(p._element, text, _rpr(p._element))
+
+
+def _set_company_header(doc, idx, company, date):
+    from docx.oxml import OxmlElement
+    p = doc.paragraphs[idx]
+    p_elem = p._element
+    ppr = p_elem.find(f"{{{_W}}}pPr")
+    ppr_rpr = ppr.find(f"{{{_W}}}rPr") if ppr is not None else None
+    for child in list(p_elem):
+        if child is not ppr:
+            p_elem.remove(child)
+    r1 = OxmlElement("w:r")
+    if ppr_rpr is not None:
+        r1.append(_copy.deepcopy(ppr_rpr))
+    t1 = OxmlElement("w:t")
+    t1.text = company
+    t1.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+    r1.append(t1)
+    p_elem.append(r1)
+    r2   = OxmlElement("w:r")
+    rpr2 = _copy.deepcopy(ppr_rpr) if ppr_rpr is not None else OxmlElement("w:rPr")
+    for el in rpr2.findall(f"{{{_W}}}caps"):
+        rpr2.remove(el)
+    caps_off = OxmlElement("w:caps")
+    caps_off.set(f"{{{_W}}}val", "0")
+    rpr2.insert(0, caps_off)
+    r2.append(rpr2)
+    t2 = OxmlElement("w:t")
+    t2.text = "\t" + date
+    t2.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+    r2.append(t2)
+    p_elem.append(r2)
+
+
+def _set_title_with_date(doc, idx, title, date):
+    from docx.oxml import OxmlElement
+    p = doc.paragraphs[idx]
+    p_elem = p._element
+    ppr = p_elem.find(f"{{{_W}}}pPr")
+    ppr_rpr = ppr.find(f"{{{_W}}}rPr") if ppr is not None else None
+    for child in list(p_elem):
+        if child is not ppr:
+            p_elem.remove(child)
+    r1 = OxmlElement("w:r")
+    if ppr_rpr is not None:
+        r1.append(_copy.deepcopy(ppr_rpr))
+    t1 = OxmlElement("w:t")
+    t1.text = title
+    t1.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+    r1.append(t1)
+    p_elem.append(r1)
+    r2   = OxmlElement("w:r")
+    rpr2 = _copy.deepcopy(ppr_rpr) if ppr_rpr is not None else OxmlElement("w:rPr")
+    for el in rpr2.findall(f"{{{_W}}}b") + rpr2.findall(f"{{{_W}}}bCs"):
+        rpr2.remove(el)
+    b_off = OxmlElement("w:b")
+    b_off.set(f"{{{_W}}}val", "0")
+    rpr2.insert(0, b_off)
+    r2.append(rpr2)
+    t2 = OxmlElement("w:t")
+    t2.text = "\t" + date
+    t2.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+    r2.append(t2)
+    p_elem.append(r2)
+
+
+def _set_para_sz(para, sz_hp):
+    from docx.oxml import OxmlElement
+    p_elem = para._element
+    ppr = p_elem.find(f"{{{_W}}}pPr")
+    if ppr is None:
+        ppr = OxmlElement("w:pPr"); p_elem.insert(0, ppr)
+    rpr = ppr.find(f"{{{_W}}}rPr")
+    if rpr is None:
+        rpr = OxmlElement("w:rPr"); ppr.append(rpr)
+    for local in ["sz", "szCs"]:
+        el = rpr.find(f"{{{_W}}}{local}")
+        if el is None:
+            el = OxmlElement(f"w:{local}"); rpr.append(el)
+        el.set(f"{{{_W}}}val", str(sz_hp))
+
+
+def _del_para(para):
+    para._element.getparent().remove(para._element)
+
+
+def _update_skills_table(doc, skills_table):
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+    table = doc.tables[0]
+    new_widths = [3260, 3260, 3259]
+    tbl_grid = table._element.find(qn("w:tblGrid"))
+    if tbl_grid is not None:
+        for gc, w in zip(tbl_grid.findall(qn("w:gridCol")), new_widths):
+            gc.set(qn("w:w"), str(w))
+    for row in table.rows:
+        for cell, w in zip(row.cells, new_widths):
+            tc = cell._element
+            tcPr = tc.find(qn("w:tcPr"))
+            if tcPr is None:
+                tcPr = OxmlElement("w:tcPr"); tc.insert(0, tcPr)
+            tcW = tcPr.find(qn("w:tcW"))
+            if tcW is None:
+                tcW = OxmlElement("w:tcW"); tcPr.append(tcW)
+            tcW.set(qn("w:w"), str(w)); tcW.set(qn("w:type"), "dxa")
+    for col_idx, skills in enumerate(skills_table):
+        cell = table.rows[0].cells[col_idx]
+        for para, skill in zip(cell.paragraphs[:4], skills):
+            _set_text(para._element, skill, _rpr(para._element))
+
+
+def _update_tech_skills(para, software_list):
+    from docx.oxml import OxmlElement
+    p_elem = para._element
+    plain_runs = p_elem.findall(f"{{{_W}}}r")[2:]
+    plain_rpr = None
+    if plain_runs:
+        rpr_el = plain_runs[0].find(f"{{{_W}}}rPr")
+        if rpr_el is not None:
+            plain_rpr = _copy.deepcopy(rpr_el)
+    for r in plain_runs:
+        p_elem.remove(r)
+    r = OxmlElement("w:r")
+    if plain_rpr is not None:
+        r.append(plain_rpr)
+    t = OxmlElement("w:t")
+    t.text = software_list
+    t.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+    r.append(t)
+    p_elem.append(r)
+
+
+def build_resume_docx_locked(optimized):
+    """
+    Builds Steve's resume in the locked two-page format using BASE_TEMPLATE.docx.
+    Format is frozen. Only the content from `optimized` (Claude's ATS JSON) changes.
+    Returns the .docx file as bytes.
+    """
+    from docx import Document
+    import io
+
+    doc = Document(BASE_TEMPLATE_PATH)
+
+    # Capture deletion references before any modifications
+    profile_slot_4  = doc.paragraphs[_IDX["profile_3"]]
+    suppress_refs   = [
+        doc.paragraphs[_IDX["s2_header"]], doc.paragraphs[_IDX["s2_desc"]],
+        doc.paragraphs[_IDX["s3_header"]], doc.paragraphs[_IDX["s3_desc"]],
+    ]
+    slot5_refs      = [doc.paragraphs[i] for i in _IDX["s5_paras"]]
+    mba_ref         = doc.paragraphs[_IDX["mba"]]
+    blank_s3_s4_ref = doc.paragraphs[_IDX["blank_s3_s4"]]
+    tech_skills_ref = doc.paragraphs[_IDX["tech_skills"]]
+
+    # Locked header fields
+    _set_para(doc, _IDX["name"],    _LOCKED["name"])
+    _set_para(doc, _IDX["contact"], _LOCKED["contact"])
+    _set_para(doc, _IDX["tagline"], _LOCKED["tagline"])
+
+    # Profile (3 bullets from Claude)
+    for i, text in enumerate(optimized["profile"]):
+        _set_para(doc, _IDX[f"profile_{i}"], text)
+
+    # Positions
+    slots = ["s1", "s2", "s3", "s4"]
+    pos_keys = ["wcirb_senior", "wcirb_member", "wcirb_accounting", "east_bay"]
+    for slot, pos_key in zip(slots, pos_keys):
+        info    = _LOCKED[slot]
+        bullets = optimized["positions"][pos_key]["bullets"]
+        if info.get("suppress"):
+            _set_title_with_date(doc, _IDX[f"{slot}_title"], info["title"], info["date"])
+        else:
+            _set_company_header(doc, _IDX[f"{slot}_header"], info["company"], info["date"])
+            _set_para(doc, _IDX[f"{slot}_title"], info["title"])
+            _set_para(doc, _IDX[f"{slot}_desc"],  info["desc"])
+        for i, b in enumerate(bullets):
+            _set_para(doc, _IDX[f"{slot}_main_{i}"], b["main"])
+            _set_para(doc, _IDX[f"{slot}_sub_{i}"],  b["sub"])
+
+    # Skills table and education
+    _update_skills_table(doc, optimized["skills_table"])
+    _set_para(doc, _IDX["edu_ba"], _LOCKED["edu"])
+
+    # Separator between Accounting and East Bay: 8pt (locked)
+    _set_para_sz(blank_s3_s4_ref, 16)
+
+    # Deletions
+    for para in [profile_slot_4] + suppress_refs + slot5_refs + [mba_ref]:
+        _del_para(para)
+
+    # Tech skills (index shifted after deletions — use pre-captured ref)
+    _update_tech_skills(tech_skills_ref, optimized["tech_skills"])
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.getvalue()
+
+
+# legacy stub kept so nothing else in the file breaks
 def build_resume_docx(optimized):
     from docx import Document
     import io
@@ -1526,33 +1925,15 @@ with tab4:
             opt_title, opt_desc = options[choice]
             st.text_area("Job description preview", value=opt_desc[:800] + "...", height=150, disabled=True)
 
-    template_choice = st.radio(
-        "Resume template",
-        ["Executive Clean (v8)", "Original Format", "Modern Design (v2)", "Modern Design (v3)", "Classic Clean (v4)"],
-        horizontal=True,
-        help="Executive Clean (v8) is the recommended format — Calibri, teal headers, borderless skills grid, consistent spacing.",
-    )
-
     if st.button("🎯 Optimize Resume for ATS", type="primary", disabled=not opt_desc):
         with st.spinner("AI is optimizing the resume — this takes ~20 seconds..."):
             try:
-                optimized = optimize_resume_for_job(opt_title, opt_desc)
-                if template_choice == "Executive Clean (v8)":
-                    docx_bytes = build_resume_docx_v8(optimized)
-                    suffix = "_v8"
-                elif template_choice == "Classic Clean (v4)":
-                    docx_bytes = build_resume_docx_v4(optimized)
-                    suffix = "_v4"
-                elif template_choice == "Modern Design (v3)":
-                    docx_bytes = build_resume_docx_v3(optimized)
-                    suffix = "_v3"
-                elif template_choice == "Modern Design (v2)":
-                    docx_bytes = build_resume_docx_v2(optimized)
-                    suffix = "_v2"
-                else:
-                    docx_bytes = build_resume_docx(optimized)
-                    suffix = ""
-                fname = f"Stanislav_Spektor_{opt_title.replace(' ', '_')}_Resume{suffix}.docx" if opt_title else f"Stanislav_Spektor_Resume_Optimized{suffix}.docx"
+                optimized  = optimize_resume_for_job(opt_title, opt_desc)
+                docx_bytes = build_resume_docx_locked(optimized)
+                fname      = (
+                    f"Stanislav_Spektor_{opt_title.replace(' ', '_')}_Resume.docx"
+                    if opt_title else "Stanislav_Spektor_Resume_Optimized.docx"
+                )
                 st.session_state["ats_keywords"]   = optimized.get("keywords_added", [])
                 st.session_state["ats_docx_bytes"] = docx_bytes
                 st.session_state["ats_fname"]      = fname
@@ -1561,7 +1942,7 @@ with tab4:
                     _kw_c = _kw_conn.cursor()
                     _kw_c.execute(
                         "INSERT INTO ats_keyword_log (job_title, keywords, template, logged_date) VALUES (?, ?, ?, ?)",
-                        (opt_title, ", ".join(optimized.get("keywords_added", [])), template_choice, date.today().strftime("%Y-%m-%d"))
+                        (opt_title, ", ".join(optimized.get("keywords_added", [])), "v3_locked", date.today().strftime("%Y-%m-%d"))
                     )
                     _kw_conn.commit()
                     _kw_conn.close()
