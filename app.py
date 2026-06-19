@@ -443,7 +443,7 @@ LANGUAGE:
 CHARACTER LIMITS (hard):
 - Profile bullets: ≤150 chars
 - Main bullets: ≤155 chars
-- Sub-bullets: 100–150 chars (intentionally 2 lines — do not write short subs)
+- Sub-bullets: 100–130 chars (intentionally 2 lines — do not write short subs)
 - Skills items: ≤30 chars each
 - tech_skills string: ≤77 chars total
 
