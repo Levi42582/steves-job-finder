@@ -33,17 +33,17 @@ BASE_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "BASE_TEMPLATE.docx
 RESUME_TEXT = """Stanislav Spektor
 925-639-3898 | s.spektor93@gmail.com | linkedin.com/in/stanislav-spektor
 
-Tagline: Regulatory Compliance | Financial Close | ERP Systems | Process Engineering
+Tagline: Senior Accountant | Financial Reporting | ERP Implementations | Internal Controls
 
 Profile
-10+ years at the center of financial compliance, close operations, and system infrastructure for a California state-designated regulatory authority.
-Proven at engineering financial solutions that pass every audit, deploy without defect, and become the standard other accountants inherit.
-Strong in financial controls and process engineering, building permanent fixes that survive audit cycles, leadership transitions, and system migrations.
+10+ years driving accuracy across financial reporting, billing operations, close cycles, and audit-ready documentation for organizations working in highly regulated environments.
+Trusted finance partner who brings order to complex work, builds alignment across stakeholders, and turns moving pieces into reliable outcomes amid competing priorities.
+Strong accounting systems background, translating operational requirements into streamlined workflows, tighter controls, and smoother implementations that sustain business continuity.
 
 Skills
-Financial Close & Reporting | Regulatory Compliance | Budgeting & Forecasting | Variance Analysis
-ERP Systems (Sage Intacct) | UAT & System Implementation | AR/AP Cycle Management | Assessment Reconciliation
-Audit Preparation & Review | Financial Controls Design | Stakeholder Management | Process Standardization
+Financial Analysis | Month-End Close | Budgeting & Forecasting | Variance Analysis
+Regulatory Compliance | UAT & Implementation | ERP & Billing Systems | Process Automation
+AR/AP Management | Process Documentation | Cross-Functional Collaboration | Internal Controls
 
 Professional Experience
 
@@ -51,37 +51,37 @@ Workers' Compensation Insurance Rating Bureau of California
 Designated Statistical Agent of the California Insurance Commissioner
 
 Senior Accountant – Membership & Assessments: Jan 2022 – Feb 2026
-- Directed compliance and regulatory submissions for 400+ member insurers, sustaining a zero-finding audit record across eight consecutive review cycles.
-  (Became the organization's compliance audit authority, with no corrective actions, no material findings, and no exceptions filed during four years in role.)
-- Deployed the organization's cloud billing platform end to end, authoring 250+ UAT test cases and delivering a zero-defect go-live on schedule.
-  (Retired the legacy billing workflow entirely, replacing it with automated processing that has run without a reconciliation exception since launch.)
-- Engineered a reconciliation process that eliminated 90% of the standing AR backlog, compressing period-end close from weeks of manual recovery to 3 days.
-  (The redesigned process became the department's close standard, permanently removing backlog management from the monthly cycle.)
+- Managed billing, assessment, and master data controls for 400+ member insurers, optimizing classification accuracy and reducing downstream corrections across core systems of record.
+  Preserved consistency and completeness across reconciliations, audit schedules, and compliance documentation to substantiate records and support clean audit outcomes.
+- Owned accounting implementation workstream for an internal billing platform, defining requirements and validating 250+ UAT scenarios across assessment, membership, and reapportionment logic.
+  Developed scenario models across parent, child, and independent insurer structures to validate allocations and accounting treatment across the population ahead of launch.
+- Engineered a structured remediation process that eliminated 90% of AR backlog, reducing period-end receivables close from weeks to 3 days while increasing transparency into unresolved balances.
+  Rebuilt aging review cadence and escalation discipline, providing leadership with actionable insights into open balances, risk areas, and clear resolution priorities ahead of close.
 
-Member Services Accounting Specialist: Aug 2019 – Jan 2022
-- Delivered complete close cycles across three consecutive fiscal years — monthly, quarterly, and year-end — with perfect accuracy and zero missed deadlines.
-  (Completed every close package three days ahead of the departmental deadline, achieving 36 consecutive on-time deliveries across three fiscal years.)
-- Maintained AR reconciliation within a 5-day post-close window for all accounts across 2.5 years without a single error or submission deadline missed.
-  (Billing accuracy held above departmental targets every period, with not a single correction filed or reconciliation window missed on record.)
-- Spearheaded UAT for the assessment calculation platform from initial test design through department-wide rollout, achieving full adoption in 30 days.
-  (Authored the complete test scenario library, standardized for reuse, adopted as the QA framework for every subsequent platform launch.)
+Member Services Accounting Analyst: Aug 2019 – Jan 2022
+- Executed monthly, quarterly, and year-end close deliverables for member billing and receivables, including management reporting and analysis, building a strong track record across 2.5 years.
+  Delivered comprehensive close packages to leadership ahead of schedule each period, preserving uninterrupted reporting cadence and continuity across three fiscal years.
+- Ensured the integrity of official insurer data across 3 independent systems of record, resolving status, affiliation, and company identifier discrepancies with internal teams and regulatory contacts.
+  Formalized data integrity reporting in collaboration with the California Department of Insurance, supporting recurring record review cycles and annual legal submissions.
+- Directed test planning and UAT execution for legacy assessment billing platform, validating calculation logic, invoice accuracy, user workflows, and operational readiness for production.
+  Authored scalable test documentation and training support that accelerated adoption, clarified user workflows, and stabilized use during the first 30 days of rollout.
 
 Accounting and Compliance Specialist: Oct 2017 – Aug 2019
-- Built and maintained 25+ procedure documents to audit standards, passing two consecutive regulatory review cycles without a single finding.
-  (Procedure library outlasted the role, adopted as the compliance baseline by three peer departments and institutionalized as the organizational standard.)
-- Reduced recurring financial discrepancies 30% through systematic audit cycles, root cause analysis, and stakeholder-accountable corrective actions.
-  (Converted a persistent 15-item discrepancy log into a stable 2-item baseline, then held it there through the end of tenure.)
-- Managed financial data preparation, reconciliation, and validation across the full assessment cycle for a high-volume regulated member portfolio.
-  (Built the reconciliation methodology that became department standard, applied unchanged by two successive accountants across the next four years.)
+- Modernized 25+ procedure documents to audit standards, reinforcing operating rigor and positioning the compliance framework to withstand two consecutive regulatory cycles with zero findings.
+  Procedure library adopted as the compliance baseline by three peer departments, extending the standard across the organization to advance broader institutional consistency.
+- Reduced payables record discrepancies 30% by tracing errors to their source, correcting upstream data inputs, and turning repeat AP issues into lasting safeguards against future recurrence.
+  Standardized AP controls for invoice coding, memo handling, and approval routing, vetting transaction details to remove avoidable rework before entries reached the ledger.
+- Administered purchase order tracking across 50+ open commitments, enhancing accrual support, spend oversight, and control over outstanding obligations for substantiated expense recognition.
+  Developed a centralized PO control model that tracked approved spend, open invoice status, and remaining balances, creating a clear framework for accrual governance.
 
 East Bay Nephrology Medical Group — Leading Nephrology Practice in Northern California
 Contracted Accounting Consultant: Jul 2016 – Aug 2017
-- Managed the full AP/AR cycle for 300+ monthly transactions at 98% accuracy, maintaining on-time close and zero billing disputes throughout the engagement.
-  (Identified a chronic billing discrepancy that had gone undetected for over six months and corrected it within the first billing cycle of the engagement.)
-- Led end-to-end ERP migration, designing the transition plan, training 10+ staff, and executing a zero-disruption go-live on schedule.
-  (The migration cut the monthly close cycle in half, enabling the practice to deliver financial reports to leadership earlier than any prior period.)
-- Closed every reporting period for practice leadership with zero errors and zero missed deadlines across the full 12-month engagement.
-  (Earned a scope extension beyond the original contract, with leadership citing delivery consistency and error-free financial reporting as the basis.)
+- Managed the full AP/AR cycle across 300+ monthly transactions at 98% accuracy, delivering on-time close packages and financial reporting with no material discrepancies throughout the engagement.
+  Owned final checkpoint for support staff entries across payables and receivables, intercepting entry, coding, and classification errors before financials reached leadership.
+- Led end-to-end financial system migration, designing the transition plan, training 10+ staff, and achieving a zero-disruption go-live with all close activities completed within the committed deadline.
+  Established deployment procedures for user training, data validation, and reporting standards, keeping core accounting operations uninterrupted throughout the conversion.
+- Aggregated financial activity across multiple practice locations into consolidated reporting, improving stakeholder insight into revenue, expenses, and operating performance at the enterprise level.
+  Engagement scope extended beyond the original contract based on reliable execution, polished deliverables, and ongoing ownership of accounting work across the assignment.
 
 Education
 B.A. Economics, University of California, Davis, 2016
@@ -432,8 +432,8 @@ This means:
   regulatory environment, not as unrelated roles
 
 EXISTING METRICS STAY:
-- Keep 90%, 400+, 250+, 30%, 3 days, 36, 300+, 98% unless the JD provides
-  something directly stronger and more relevant to replace them
+- Keep 400+, 250+, 90%, 3 days, 2.5 years, 3, 30 days, 25+, 30%, 50+, 300+, 98%, 10+
+  unless the JD provides something directly stronger and more relevant to replace them
 
 LANGUAGE:
 - No em dashes (—) as sentence separators — use commas or rephrase
@@ -554,11 +554,11 @@ _IDX = {
 _LOCKED = {
     "name":    "Stanislav Spektor",
     "contact": "925-639-3898  |  s.spektor93@gmail.com  |  linkedin.com/in/stanislav-spektor",
-    "tagline": "Regulatory Compliance  |  Financial Close  |  ERP Systems  |  Process Engineering",
+    "tagline": "Senior Accountant  |  Financial Reporting  |  ERP Implementations  |  Internal Controls",
     "s1": {"company": "Workers' Compensation Insurance Rating Bureau", "date": "Jan 2022–Feb 2026",
            "title": "Senior Accountant – Membership & Assessments",
            "desc":  "Designated Statistical Agent of the California Insurance Commissioner"},
-    "s2": {"suppress": True, "title": "Member Services Accounting Specialist", "date": "Aug 2019–Jan 2022"},
+    "s2": {"suppress": True, "title": "Member Services Accounting Analyst", "date": "Aug 2019–Jan 2022"},
     "s3": {"suppress": True, "title": "Accounting and Compliance Specialist",  "date": "Oct 2017–Aug 2019"},
     "s4": {"company": "East Bay Nephrology Medical Group", "date": "Jul 2016–Aug 2017",
            "title": "Contracted Accounting Consultant",
